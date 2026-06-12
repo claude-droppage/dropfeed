@@ -12,29 +12,40 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 **Etap 2 — Feed na mock-danych.** Budujemy front feedu czytający z lokalnego pliku mock-danych, BEZ backendu i bez prawdziwego scrapingu. Cel: dopracować UX swipe'a i kartę zanim podłączymy realne dane. Pipeline danych (Apify, Supabase) przychodzi później (Etap 1 w numeracji danych) — ale architektura ma być na niego gotowa od teraz.
 
-### Co zostało zrobione (2026-06-12)
+### Co jest ukończone (2026-06-12) — punkty 1–7 ✅
 
-Punkty 1–6 z sekcji "Pierwsze zadanie" są ukończone:
-
-- **Inicjalizacja** — Next.js 16.2.9 + React 19 + TypeScript strict + Tailwind v4.3.1 + framer-motion 12 + @use-gesture/react 10.
-- **`lib/types.ts`** — komplet encji z PRD sekcja 10: `Brand`, `Product`, `Ad`, `User`, `Board`, `SavedItem`, `Swipe`, `FeedItem`. Pole `format: 'video' | 'image'` na `Ad`, `offerType` i `confidence` na `Ad` i `Product`. BEZ pól marży/ceny źródłowej.
-- **`lib/data/mock.ts`** — 30 reklam, 10 brandów, 27 produktów. Mix: wideo/grafika, fizyczne/cyfrowe/app/kursy/usługi, heat score 41–95. Placeholder images: `picsum.photos/seed/{id}/360/640`.
-- **`lib/data/source.ts`** — abstrakcja: `getFeedItems()`, `getAdsByBrand()`, `getBrandById()`, `getProductById()`, `getAllBrands()`. Podmienić implementację gdy Supabase gotowe.
+**Fundament (punkty 1–6):**
+- **Inicjalizacja** — Next.js 16.2.9 + React 19 + TypeScript strict + Tailwind v4.3.1 + framer-motion 12 + @use-gesture/react 10 + lucide-react.
+- **`lib/types.ts`** — komplet encji: `Brand`, `Product`, `Ad`, `User`, `Board`, `SavedItem`, `Swipe`, `FeedItem`. Pole `format: 'video' | 'image'` na `Ad`, `offerType` i `confidence` na `Ad` i `Product`. BEZ pól marży/ceny źródłowej.
+- **`lib/data/mock.ts`** — 30 reklam, 10 brandów, 27 produktów. Mix nisz, heat score 41–95. Placeholder images: `picsum.photos/seed/{id}/360/640`.
+- **`lib/data/source.ts`** — abstrakcja: `getFeedItems()`, `getAdsByBrand()`, `getBrandById()`, `getProductById()`, `getAllBrands()`. Podmienić gdy Supabase gotowe.
 - **`lib/heat.ts`** — `computeHeatScore(input)` — czysta funkcja, 5 składników z PRD sekcja 9.
-- **`styles/tokens.css`** — CSS vars w `:root` + `@theme inline` dla Tailwind v4. `app/globals.css` importuje plik przez `@import "../styles/tokens.css"`.
+- **`styles/tokens.css`** — CSS vars + `@theme inline` dla Tailwind v4.
 
-### Decyzje techniczne podjęte w sesji
+**Ekran feed (punkt 7):**
+- **`components/feed/SwipeDeck.tsx`** — silnik gestów + animacje. Gesty: góra/dół = spring slide, prawo = save flyoff, lewo = skip flyoff. Resistance na granicach. `transitioning` ref blokuje re-entrancję.
+- **`components/feed/SwipeCard.tsx`** — pełnoekranowa karta: kreacja, scrim, top data bar (heat pill + typ oferty + dni + warianty + format), prawy pasek akcji (zapisz/deep-dive/strona), lewy dół (avatar + marka + pill "skaluje" + nazwa oferty), pasek świeżości.
+- **`components/feed/FeedView.tsx`** — client component: stan trybu + filtrowanie. Hot = top 10 wg heat score.
+- **`components/feed/ModeToggle.tsx`** — zakładki Inspiracje/Produkty/Gorące, aktywna = amber underline.
+- **`components/feed/CoachMark.tsx`** — overlay gestów przy pierwszym uruchomieniu (localStorage `dropfeed_coached_v1`), auto-dismiss 4s.
+- **`components/ui/BottomNav.tsx`** — Feed/Boardy/Odkrywaj/Profil z ikonami Lucide, aktywny = heat.
+- **`app/(app)/layout.tsx`** + szkielety Boardy/Odkrywaj/Profil + redirect `/` → `/feed`.
+- **`lib/i18n/pl.ts`** — wszystkie stringi UI.
 
-- **Tailwind v4** (nie v3) — konfiguracja przez `@theme inline` w CSS, brak `tailwind.config.ts`. Kolory jako `--color-*` → klasy `bg-*`, `text-*`, `border-*`.
-- **Next.js 16 + React 19** — App Router, brak `src/` directory, alias `@/*` → `./`.
-- **Fonty** — Geist i Geist Mono załadowane przez `next/font/google` w `app/layout.tsx`, eksponowane jako `--font-geist-sans` / `--font-geist-mono`. W `@theme inline`: `--font-sans` i `--font-mono`.
-- **Mock data** — `creativeUrl` = picsum.photos (placeholder). Pole `format` decyduje jak UI renderuje kreację.
-- **`scalingSince`** — dni odkąd brand aktywnie skaluje; `undefined` = nie skaluje. Mięta `--profit` pokazuje się TYLKO gdy `scalingSince` jest ustawione.
-- **`confidence`** — przy niskim confidence UI pokazuje samą markę bez nazwy oferty (dotyczy pól skrapowanych z landinga).
+### Decyzje techniczne
+
+- **Tailwind v4** — `@theme inline` w CSS, brak `tailwind.config.ts`. `--color-*` → klasy `bg-*`/`text-*`/`border-*`.
+- **Fonty** — Geist/Geist Mono przez `next/font/google`, eksponowane jako CSS vars, podłączone w `@theme inline`.
+- **`scalingSince`** — `undefined` = nie skaluje; mięta `--profit` pokazuje się TYLKO gdy ustawione.
+- **`confidence`** — przy niskim confidence UI pokazuje samą markę bez nazwy oferty.
+- **Gesty** — vertical priority: lockout kierunku po >10px ruchu; vertical = nawigacja, horizontal = decyzja.
+- **`animate(motionValue, target, opts)`** zwraca `AnimationPlaybackControlsWithThen` — używamy `await` dla sekwencji wejście/wyjście.
+- **Video** — renderuje `<video>` TYLKO gdy URL kończy się `.mp4/.webm/.mov`; mock data = picsum = `<img>`.
+- **`key={index}`** na motion.div w SwipeDeck = remount karty przy zmianie; motion values (x, y, rotation) trwają pomiędzy kartami.
 
 ### Następny krok
 
-Punkt 7 — ekran `/feed`: pełnoekranowy feed jak TikTok. SwipeDeck + SwipeCard + gesty góra/dół (nawigacja) + prawo/lewo (zapisz/pomiń) + pasek danych + pasek akcji + pasek świeżości. Wzorzec: `design-reference.html` sekcja 03.
+Punkt 8 — dopracowanie UX: deep-dive sheet (tap na markę), zapis do boardu (long-press prawej strony karty), animacja heart przy save.
 
 ## Stack (decyzje podjęte — nie zmieniać bez pytania)
 
