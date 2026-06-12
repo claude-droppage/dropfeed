@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { motion, useMotionValue, animate } from 'framer-motion'
+import { motion, useMotionValue, animate, AnimatePresence } from 'framer-motion'
 import { useDrag } from '@use-gesture/react'
 import type { FeedItem, FeedMode } from '@/lib/types'
 import SwipeCard from './SwipeCard'
 import CoachMark from './CoachMark'
+import SaveFeedback from './SaveFeedback'
+import BoardPickerSheet from '@/components/boards/BoardPickerSheet'
+import { useBoards } from '@/lib/boards'
 import { pl } from '@/lib/i18n/pl'
 
 interface Props {
@@ -17,13 +20,20 @@ export default function SwipeDeck({ items, mode }: Props) {
   const [index, setIndex] = useState(0)
   const [isMuted, setIsMuted] = useState(true)
   const [coached, setCoached] = useState(false)
+  const [saveFeedback, setSaveFeedback] = useState<{ boardName: string } | null>(null)
+  const [showBoardPicker, setShowBoardPicker] = useState(false)
 
   const transitioning = useRef(false)
   const gestureDir = useRef<'v' | 'h' | null>(null)
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentIndexRef = useRef(index)
+  currentIndexRef.current = index
 
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const rotation = useMotionValue(0)
+
+  const { boards, saveToBoard, saveToLastBoard, createBoard, getBoardItemCount } = useBoards()
 
   const W = () => (typeof window !== 'undefined' ? window.innerWidth : 400)
   const H = () => (typeof window !== 'undefined' ? window.innerHeight : 844)
@@ -34,11 +44,19 @@ export default function SwipeDeck({ items, mode }: Props) {
     animate(rotation, 0, { type: 'spring', stiffness: 350, damping: 35 })
   }, [x, y, rotation])
 
+  const clearHoldTimer = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current)
+      holdTimerRef.current = null
+    }
+  }
+
   const runTransition = useCallback(
-    async (action: 'next' | 'prev' | 'save' | 'skip') => {
+    async (action: 'next' | 'prev' | 'save' | 'skip', pickerBoardId?: string) => {
       if (transitioning.current) return
-      const atEnd = index >= items.length - 1
-      const atStart = index <= 0
+      const currentIdx = currentIndexRef.current
+      const atEnd = currentIdx >= items.length - 1
+      const atStart = currentIdx <= 0
 
       if ((action === 'next' || action === 'save' || action === 'skip') && atEnd) {
         springBack()
@@ -66,6 +84,17 @@ export default function SwipeDeck({ items, mode }: Props) {
         setIndex((i) => i - 1)
         await animate(y, 0, { type: 'spring', stiffness: 380, damping: 38 })
       } else if (action === 'save') {
+        const ad = items[currentIdx]?.ad
+        if (ad) {
+          let boardName: string
+          if (pickerBoardId) {
+            saveToBoard(pickerBoardId, ad.id)
+            boardName = boards.find((b) => b.id === pickerBoardId)?.name ?? pl.boards.saved
+          } else {
+            boardName = saveToLastBoard(ad.id)
+          }
+          setSaveFeedback({ boardName })
+        }
         await animate(x, W() + 80, { duration: 0.22, ease: 'easeIn' })
         x.set(0)
         y.set(0)
@@ -81,21 +110,25 @@ export default function SwipeDeck({ items, mode }: Props) {
 
       transitioning.current = false
     },
-    [index, items.length, x, y, rotation, springBack]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [index, items, boards, x, y, rotation, springBack, saveToBoard, saveToLastBoard],
   )
 
   const bind = useDrag(
     ({ movement: [mx, my], first, last, velocity: [vx, vy] }) => {
       if (transitioning.current) return
 
-      if (first) gestureDir.current = null
+      if (first) {
+        gestureDir.current = null
+        clearHoldTimer()
+      }
 
       if (!gestureDir.current && (Math.abs(mx) > 10 || Math.abs(my) > 10)) {
         gestureDir.current = Math.abs(my) > Math.abs(mx) ? 'v' : 'h'
       }
 
       if (gestureDir.current === 'v') {
-        // Resistance at bounds
+        clearHoldTimer()
         const bounded =
           my < 0 && index >= items.length - 1
             ? my * 0.15
@@ -117,7 +150,22 @@ export default function SwipeDeck({ items, mode }: Props) {
         x.set(mx)
         rotation.set((mx / (W() || 400)) * 14)
 
+        // Long-press detection: hold in save zone (>60px right) for 450ms
+        if (mx > 60) {
+          if (!holdTimerRef.current) {
+            holdTimerRef.current = setTimeout(() => {
+              holdTimerRef.current = null
+              if ('vibrate' in navigator) navigator.vibrate(40)
+              springBack()
+              setShowBoardPicker(true)
+            }, 450)
+          }
+        } else {
+          clearHoldTimer()
+        }
+
         if (last) {
+          clearHoldTimer()
           if ((mx > 80 || vx > 0.45) && index < items.length - 1) {
             runTransition('save')
           } else if ((mx < -80 || vx < -0.45) && index < items.length - 1) {
@@ -143,10 +191,7 @@ export default function SwipeDeck({ items, mode }: Props) {
   }
 
   return (
-    <div
-      className="absolute inset-0 overflow-hidden touch-none select-none"
-      {...bind()}
-    >
+    <div className="absolute inset-0 overflow-hidden touch-none select-none" {...bind()}>
       <motion.div
         key={index}
         className="absolute inset-0"
@@ -162,6 +207,33 @@ export default function SwipeDeck({ items, mode }: Props) {
       </motion.div>
 
       {!coached && <CoachMark onDismiss={() => setCoached(true)} />}
+
+      <AnimatePresence>
+        {saveFeedback && (
+          <SaveFeedback
+            key="save-fb"
+            boardName={saveFeedback.boardName}
+            onDone={() => setSaveFeedback(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {showBoardPicker && (
+        <BoardPickerSheet
+          boards={boards}
+          getBoardItemCount={getBoardItemCount}
+          onSelect={(boardId) => {
+            setShowBoardPicker(false)
+            runTransition('save', boardId)
+          }}
+          onCreateAndSelect={(name) => {
+            const board = createBoard(name)
+            setShowBoardPicker(false)
+            runTransition('save', board.id)
+          }}
+          onClose={() => setShowBoardPicker(false)}
+        />
+      )}
     </div>
   )
 }
