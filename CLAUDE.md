@@ -12,7 +12,7 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 **Etap 2 — Feed na mock-danych.** Budujemy front feedu czytający z lokalnego pliku mock-danych, BEZ backendu i bez prawdziwego scrapingu. Cel: dopracować UX swipe'a i kartę zanim podłączymy realne dane. Pipeline danych (Apify, Supabase) przychodzi później (Etap 1 w numeracji danych) — ale architektura ma być na niego gotowa od teraz.
 
-### Co jest ukończone (2026-06-12) — punkty 1–7 ✅
+### Co jest ukończone (2026-06-12) — punkty 1–7 + 8 (boards) + 9 (szkielety) ✅
 
 **Fundament (punkty 1–6):**
 - **Inicjalizacja** — Next.js 16.2.9 + React 19 + TypeScript strict + Tailwind v4.3.1 + framer-motion 12 + @use-gesture/react 10 + lucide-react.
@@ -48,9 +48,28 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 - **`scalingSince`** — `undefined` = nie skaluje; mięta pokazuje się TYLKO gdy ustawione (i w mobile, i desktop).
 - **`animate(motionValue, target, opts)`** — framer-motion v12 zwraca `AnimationPlaybackControlsWithThen` (awaitable).
 
+**Boardy + zapis z feedu (punkt 8 + 9):**
+- **`lib/boards.ts`** — `useBoards()` hook; localStorage (`dropfeed_boards_v1`); `saveToLastBoard(adId)` zwraca nazwę boardu synchronicznie ze snapshotua store; `createBoard`, `saveToBoard`, `getBoardItems`, `getBoardItemCount`, `isAlreadySaved`.
+- **`components/boards/BoardCard`** — 2×2 miniatura z picsum + nazwa + liczba pozycji (wg design-reference 05).
+- **`components/boards/CreateBoardSheet`** — spring bottom sheet + input + przycisk "Utwórz".
+- **`components/boards/BoardPickerSheet`** — wybór boardu przy long-press; zawiera inline tworzenie nowego.
+- **`components/feed/SaveFeedback`** — serce 72px + toast "Zapisano · [nazwa]" przez AnimatePresence.
+- **SwipeDeck** — swipe prawo: `saveToLastBoard` + `SaveFeedback`; przytrzymanie 450ms w save-zone → wibracja 40ms + `BoardPickerSheet`; picker: `saveToBoard(boardId)` lub `createBoard(name)` + save.
+- **`app/(app)/boards`** — 2-kolumnowa siatka boardów z `+` w nagłówku; empty state.
+- **`app/(app)/boards/[id]`** — 3-kolumnowy grid zapisanych kreacji z heat badge; `use(params)` (React 19).
+- **`app/(app)/discover`** — szkielet z search bar + trending pills + siatka nisz.
+- **`app/(app)/profile`** — szkielet z avatarem + badge planu + lista opcji menu.
+
+### Decyzje techniczne (dopisane)
+
+- **`saveToLastBoard` sync return** — czyta `store` snapshot (stabilny w render); NIE używa closure-mutation w setState updaterze — to nie jest thread-safe w React 18+ concurrent.
+- **Długie przytrzymanie** — `holdTimerRef` + `clearTimeout` w `first`, w `last`, i gdy `mx < 60`; timer NIE startuje ponownie po wyczyszczeniu aż do nowego gestu.
+- **Board detail params** — `use(params)` z React 19 (Next.js 16 App Router przekazuje params jako Promise w client components).
+- **`ads` import w pages** — bezpośredni import z `@/lib/data/mock` TYLKO do resolucji thumbnail URL; feed czyta przez `source.ts`.
+
 ### Następny krok
 
-Punkt 8 — deep-dive sheet na mobile (tap na markę), zapis do boardu (long-press), animacja heart przy save.
+Punkt 10 — deep-dive sheet na mobile (tap na markę/kreację w board detail), ewentualnie podłączenie danych z Supabase (Etap 1).
 
 ## Stack (decyzje podjęte — nie zmieniać bez pytania)
 
