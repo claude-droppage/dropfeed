@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dropfeed — design reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-void:#0B0B0E; --bg-surface:#15151A; --bg-raised:#1C1C22;
+    --text-hi:#F2F2F0; --text-mid:#9C9CA4; --text-lo:#6E6E76;
+    --heat:#EF9F27; --heat-deep:#412402; --profit:#9FE1CB; --line:#26262C;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg-void); color:var(--text-hi); font-family:'Geist',sans-serif; padding:48px 24px; max-width:1280px; margin:0 auto;}
+  .mono{font-family:'Geist Mono',monospace;}
+  h1{font-size:28px; font-weight:600; margin-bottom:6px;}
+  h2{font-size:13px; font-weight:500; color:var(--text-lo); text-transform:uppercase; letter-spacing:2px; margin:56px 0 20px; border-top:1px solid var(--line); padding-top:24px;}
+  .sub{color:var(--text-mid); font-size:14px; max-width:640px; line-height:1.6;}
+  .row{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;}
+  .note{font-size:12px; color:var(--text-lo); margin-top:10px; max-width:300px; line-height:1.5;}
+  .swatch{width:130px; border-radius:12px; overflow:hidden; border:1px solid var(--line);}
+  .swatch .c{height:64px;}
+  .swatch .l{padding:8px 10px; font-size:11px; background:var(--bg-surface);}
+  .swatch .l b{display:block; font-weight:500; color:var(--text-hi); font-size:12px;}
+  .swatch .l span{color:var(--text-lo);}
+  .phone{width:320px; background:var(--bg-void); border:1px solid var(--line); border-radius:36px; padding:14px; flex-shrink:0;}
+  .ph-head{display:flex; justify-content:space-between; align-items:center; padding:6px 8px 14px;}
+  .logo{font-family:'Geist Mono',monospace; font-size:15px; font-weight:500; letter-spacing:.5px;}
+  .logo em{color:var(--heat); font-style:normal;}
+  .fresh{height:4px; background:var(--line);}
+  .fresh i{display:block; height:4px; background:var(--heat);}
+  .actions{display:flex; justify-content:center; gap:20px; padding:18px 0 4px; align-items:center;}
+  .act{width:52px; height:52px; border-radius:50%; background:var(--bg-surface); border:1px solid var(--line); color:var(--text-lo); display:flex; align-items:center; justify-content:center; font-size:18px;}
+  .act.save{width:64px; height:64px; background:var(--heat-deep); border-color:#854F0B; color:#FAC775; font-size:22px;}
+  .hint{text-align:center; font-size:11px; color:#44444B; padding-top:6px;}
+  .toggle{display:flex; background:var(--bg-surface); border:1px solid var(--line); border-radius:999px; padding:3px; margin-bottom:12px;}
+  .toggle div{flex:1; text-align:center; font-size:12px; padding:7px 0; border-radius:999px; color:var(--text-lo);}
+  .toggle .on{background:var(--bg-raised); color:var(--text-hi); font-weight:500;}
+  .bnav{display:flex; justify-content:space-around; border-top:1px solid var(--line); margin-top:14px; padding-top:12px;}
+  .bnav div{font-size:10px; color:var(--text-lo); text-align:center;}
+  .bnav .on{color:var(--heat);}
+  .bnav i{display:block; font-size:16px; font-style:normal; margin-bottom:3px;}
+  .dd-head{display:flex; gap:12px; align-items:center; padding:6px 4px 14px;}
+  .avatar{width:44px; height:44px; border-radius:50%; background:var(--bg-raised); display:flex; align-items:center; justify-content:center; font-weight:500; font-size:14px; color:var(--profit);}
+  .dd-head b{font-size:15px; font-weight:500; display:block;}
+  .dd-head span{font-size:12px; color:var(--text-lo);}
+  .chips{display:flex; gap:8px; margin-bottom:14px;}
+  .chip{font-size:11px; padding:5px 10px; border-radius:999px; background:var(--bg-surface); border:1px solid var(--line); color:var(--text-mid);}
+  .tl{background:var(--bg-surface); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:12px;}
+  .tl b{font-size:12px; font-weight:500; color:var(--text-mid); display:block; margin-bottom:10px;}
+  .bars{display:flex; align-items:flex-end; gap:4px; height:56px;}
+  .bars i{flex:1; background:var(--line); border-radius:3px 3px 0 0;}
+  .bars i.h{background:var(--heat);}
+  .tl span{font-size:10px; color:var(--text-lo); display:block; margin-top:6px;}
+  .adgrid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
+  .adthumb{aspect-ratio:9/14; background:var(--bg-raised); border-radius:10px; position:relative;}
+  .adthumb em{position:absolute; bottom:6px; left:6px; font-style:normal; font-family:'Geist Mono',monospace; font-size:10px; color:#FAC775; background:var(--heat-deep); padding:2px 6px; border-radius:999px;}
+  .bgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .board{background:var(--bg-surface); border:1px solid var(--line); border-radius:16px; overflow:hidden;}
+  .bthumbs{display:grid; grid-template-columns:1fr 1fr; gap:2px; height:90px;}
+  .bthumbs i{background:var(--bg-raised);}
+  .board .bl{padding:10px 12px;}
+  .board .bl b{font-size:13px; font-weight:500; display:block;}
+  .board .bl span{font-size:11px; color:var(--text-lo);}
+  .desktop{width:100%; max-width:1100px; background:var(--bg-void); border:1px solid var(--line); border-radius:20px; overflow:hidden;}
+  .d-top{display:flex; align-items:center; gap:24px; padding:16px 24px; border-bottom:1px solid var(--line);}
+  .d-search{flex:1; max-width:360px; background:var(--bg-surface); border:1px solid var(--line); border-radius:999px; padding:8px 16px; font-size:13px; color:var(--text-lo);}
+  .d-nav{display:flex; gap:20px; font-size:13px; color:var(--text-lo);}
+  .d-nav .on{color:var(--text-hi); font-weight:500;}
+  .d-body{display:flex;}
+  .d-grid{flex:1; padding:20px; display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .d-card{background:var(--bg-surface); border:1px solid var(--line); border-radius:14px; overflow:hidden;}
+  .d-card .m{aspect-ratio:9/12; background:var(--bg-raised); position:relative;}
+  .d-card .m em{position:absolute; top:8px; left:8px; font-style:normal; font-family:'Geist Mono',monospace; font-size:10px; color:#FAC775; background:var(--heat-deep); padding:3px 7px; border-radius:999px; font-weight:500;}
+  .d-card .t{padding:9px 11px; font-size:12px;}
+  .d-card .t b{font-weight:500; display:block;}
+  .d-card .t span{color:var(--profit); font-family:'Geist Mono',monospace; font-size:11px;}
+  .d-side{width:300px; border-left:1px solid var(--line); padding:20px; background:var(--bg-surface);}
+  .d-side h3{font-size:14px; font-weight:500; margin-bottom:4px;}
+  .d-side p{font-size:12px; color:var(--text-mid); line-height:1.6; margin-bottom:14px;}
+  .d-side .stat{display:flex; justify-content:space-between; font-size:12px; padding:8px 0; border-bottom:1px solid var(--line);}
+  .d-side .stat b{font-family:'Geist Mono',monospace; font-weight:500;}
+  .btn{display:inline-block; background:var(--heat); color:#2A1700; font-size:13px; font-weight:500; padding:10px 18px; border-radius:999px; margin-top:16px;}
+  .type-spec div{margin-bottom:14px;}
+  .type-spec small{color:var(--text-lo); font-size:11px; display:block; font-family:'Geist Mono',monospace; margin-top:2px;}
+</style>
+</head>
+<body>
+
+<h1>dropfeed<span style="color:var(--heat)">_</span> design reference</h1>
+<p class="sub">Wzorzec wizualny aplikacji. Ciemny motyw warstwowy, akcent bursztynu = heat/winner, mięta = sygnał skalowania. Dla Claude Code: implementuj ekrany 1:1 wg tych makiet, tokeny w styles/tokens.css.</p>
+
+<h2>01 — Tokeny kolorów</h2>
+<div class="row">
+  <div class="swatch"><div class="c" style="background:#0B0B0E"></div><div class="l"><b>--bg-void</b><span class="mono">#0B0B0E</span></div></div>
+  <div class="swatch"><div class="c" style="background:#15151A"></div><div class="l"><b>--bg-surface</b><span class="mono">#15151A</span></div></div>
+  <div class="swatch"><div class="c" style="background:#1C1C22"></div><div class="l"><b>--bg-raised</b><span class="mono">#1C1C22</span></div></div>
+  <div class="swatch"><div class="c" style="background:#EF9F27"></div><div class="l"><b>--heat</b><span class="mono">#EF9F27</span></div></div>
+  <div class="swatch"><div class="c" style="background:#412402"></div><div class="l"><b>--heat-deep</b><span class="mono">#412402</span></div></div>
+  <div class="swatch"><div class="c" style="background:#9FE1CB"></div><div class="l"><b>--profit</b><span class="mono">#9FE1CB</span></div></div>
+  <div class="swatch"><div class="c" style="background:#26262C"></div><div class="l"><b>--line</b><span class="mono">#26262C</span></div></div>
+</div>
+
+<h2>02 — Typografia</h2>
+<div class="type-spec">
+  <div style="font-size:24px; font-weight:600;">Geist 600 — nagłówki ekranów<small>display / 24px</small></div>
+  <div style="font-size:16px; font-weight:500;">Geist 500 — tytuły kart, przyciski<small>ui / 16px</small></div>
+  <div style="font-size:14px; color:var(--text-mid);">Geist 400 — opisy, teksty pomocnicze<small>body / 14px, --text-mid</small></div>
+  <div class="mono" style="font-size:16px; color:var(--profit);">Geist Mono — 47 dni · 12 wariantów · Heat 87<small>wszystkie liczby i dane / monospace</small></div>
+</div>
+
+<h2>03 — Mobile: Feed (pełnoekranowy jak TikTok)</h2>
+<div class="row">
+  <div class="phone" style="padding:0; overflow:hidden;">
+    <div style="height:560px; background:var(--bg-raised); position:relative; display:flex; align-items:center; justify-content:center;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+        <div style="width:54px;height:54px;border-radius:50%;background:rgba(38,38,44,.9);display:flex;align-items:center;justify-content:center;font-size:18px;">&#9654;</div>
+        <span style="font-size:11px;color:var(--text-lo);">kreacja Reels/TikTok 9:16</span>
+      </div>
+      <!-- zakładki -->
+      <div style="position:absolute;top:14px;left:0;right:0;display:flex;justify-content:center;gap:18px;font-size:13px;">
+        <span style="color:var(--text-lo);">Inspiracje</span>
+        <span style="color:var(--text-hi);font-weight:500;border-bottom:2px solid var(--heat);padding-bottom:3px;">Produkty</span>
+        <span style="color:var(--text-lo);">Gorące</span>
+      </div>
+      <!-- górny pasek danych -->
+      <div style="position:absolute;top:44px;left:10px;right:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <span class="mono" style="background:rgba(65,36,2,.92);color:#FAC775;font-size:12px;font-weight:500;padding:5px 11px;border-radius:999px;flex-shrink:0;">Heat 87</span>
+        <span style="background:rgba(21,21,26,.85);border:1px solid var(--line);color:var(--text-mid);font-size:12px;padding:5px 9px;border-radius:999px;">&#128230;</span>
+        <span class="mono" style="background:rgba(21,21,26,.85);border:1px solid var(--line);color:var(--text-mid);font-size:12px;padding:5px 10px;border-radius:999px;">47d</span>
+        <span class="mono" style="background:rgba(21,21,26,.85);border:1px solid var(--line);color:var(--text-mid);font-size:12px;padding:5px 10px;border-radius:999px;">&#8862; 12</span>
+        <span style="background:rgba(21,21,26,.85);border:1px solid var(--line);color:var(--text-lo);font-size:12px;padding:5px 9px;border-radius:999px;">&#9654;</span>
+      </div>
+      <!-- pasek akcji prawy -->
+      <div style="position:absolute;right:10px;bottom:110px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;">
+        <div><div style="width:46px;height:46px;border-radius:50%;background:rgba(65,36,2,.92);border:1px solid #854F0B;color:#FAC775;display:flex;align-items:center;justify-content:center;font-size:18px;">&#9825;</div><span style="font-size:10px;color:var(--text-mid);">zapisz</span></div>
+        <div><div style="width:46px;height:46px;border-radius:50%;background:rgba(21,21,26,.85);border:1px solid var(--line);color:var(--text-hi);display:flex;align-items:center;justify-content:center;font-size:16px;">&#8599;</div><span style="font-size:10px;color:var(--text-mid);">deep dive</span></div>
+        <div><div style="width:46px;height:46px;border-radius:50%;background:rgba(21,21,26,.85);border:1px solid var(--line);color:var(--text-hi);display:flex;align-items:center;justify-content:center;font-size:16px;">&#8599;</div><span style="font-size:10px;color:var(--text-mid);">strona</span></div>
+      </div>
+      <!-- lewy dół -->
+      <div style="position:absolute;left:12px;right:70px;bottom:54px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(38,38,44,.95);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--profit);">FW</div>
+          <span style="font-size:13px;font-weight:500;">FlexWell Store</span>
+          <span class="mono" style="background:rgba(11,11,14,.7);border:1px solid var(--line);color:var(--profit);font-size:10px;padding:2px 8px;border-radius:999px;">skaluje</span>
+        </div>
+        <div style="font-size:15px;font-weight:500;">Posture Corrector Pro</div>
+      </div>
+      <!-- pasek świeżości -->
+      <div class="fresh" style="position:absolute;left:0;right:0;bottom:0;"><i style="width:72%"></i></div>
+    </div>
+    <div class="bnav" style="margin:0;padding:12px 0 14px;background:var(--bg-void);">
+      <div class="on"><i>&#9670;</i>Feed</div><div><i>&#9825;</i>Boardy</div><div><i>&#8862;</i>Odkrywaj</div><div><i>&#9711;</i>Profil</div>
+    </div>
+  </div>
+  <p class="note">Kreacja (wideo 9:16 autoplay LUB statyczna grafika) wypełnia CAŁY ekran. Górny pasek danych: same ikony+liczby bez opisów (Lucide w kodzie). Scrim na dole (gradient rgba(11,11,14,.7)) dla czytelności. Gesty: góra/dół = nawigacja, prawo = zapisz, lewo = pomiń. Tap na markę = deep dive. Tap na kreację = dźwięk on/off. Mięta "skaluje" tylko gdy aktywnie skaluje. Przycisk "strona", nie "sklep".</p>
+</div>
+
+<h2>04 — Mobile: Deep dive</h2>
+<div class="row">
+  <div class="phone">
+    <div class="dd-head">
+      <div class="avatar">FW</div>
+      <div><b>FlexWell Store</b><span>Shopify · IG 24,3k obserwujących</span></div>
+    </div>
+    <div class="chips"><span class="chip">sklep &#8599;</span><span class="chip">instagram &#8599;</span><span class="chip">aliexpress &#8599;</span></div>
+    <div class="tl">
+      <b>Oś skalowania — nowe warianty / tydzień</b>
+      <div class="bars"><i style="height:18%"></i><i style="height:25%"></i><i style="height:22%"></i><i style="height:40%"></i><i style="height:55%" class="h"></i><i style="height:80%" class="h"></i><i style="height:100%" class="h"></i></div>
+      <span>ostatnie 7 tygodni · bursztyn = skalowanie</span>
+    </div>
+    <div class="tl" style="padding-bottom:16px;">
+      <b>Aktywne reklamy tej marki (12)</b>
+      <div class="adgrid">
+        <div class="adthumb"><em>87</em></div><div class="adthumb"><em>74</em></div><div class="adthumb"><em>71</em></div>
+        <div class="adthumb"><em>63</em></div><div class="adthumb"><em>58</em></div><div class="adthumb"><em>52</em></div>
+      </div>
+    </div>
+    <div class="hint">swipe w dół wraca do feedu</div>
+  </div>
+  <p class="note">Profil marki: linki (sklep, IG, źródło), oś skalowania, grid aktywnych reklam z heat. Tap na miniaturę otwiera kreację.</p>
+</div>
+
+<h2>05 — Mobile: Boardy</h2>
+<div class="row">
+  <div class="phone">
+    <div class="ph-head"><span class="logo">Twoje boardy</span><span style="color:var(--text-lo)">+</span></div>
+    <div class="bgrid">
+      <div class="board"><div class="bthumbs"><i></i><i></i><i></i><i></i></div><div class="bl"><b>Do przetestowania</b><span>14 pozycji</span></div></div>
+      <div class="board"><div class="bthumbs"><i></i><i></i><i></i><i></i></div><div class="bl"><b>Inspiracje kreacji</b><span>9 pozycji</span></div></div>
+      <div class="board"><div class="bthumbs"><i></i><i></i><i></i><i></i></div><div class="bl"><b>Nisza: pet</b><span>22 pozycje</span></div></div>
+      <div class="board"><div class="bthumbs"><i></i><i></i><i></i><i></i></div><div class="bl"><b>Q3 research</b><span>6 pozycji</span></div></div>
+    </div>
+    <div class="bnav" style="margin-top:18px;"><div><i>&#9670;</i>Feed</div><div class="on"><i>&#9825;</i>Boardy</div><div><i>&#8862;</i>Odkrywaj</div><div><i>&#9711;</i>Profil</div></div>
+  </div>
+</div>
+
+<h2>06 — Desktop (Grid + panel boczny)</h2>
+<div class="desktop">
+  <div class="d-top">
+    <span class="logo">dropfeed<em>_</em></span>
+    <div class="d-search">&#8981; szukaj produktu, marki, niszy…</div>
+    <div class="d-nav"><span class="on">Feed</span><span>Boardy</span><span>Odkrywaj</span><span>Profil</span></div>
+  </div>
+  <div class="d-body">
+    <div class="d-grid">
+      <div class="d-card"><div class="m"><em>Heat 87</em></div><div class="t"><b>Posture Corrector Pro</b><span>fizyczny · 47 dni</span></div></div>
+      <div class="d-card"><div class="m"><em>Heat 81</em></div><div class="t"><b>LinguaFlow App</b><span>aplikacja · 112 dni</span></div></div>
+      <div class="d-card"><div class="m"><em>Heat 76</em></div><div class="t"><b>Natural Skincare Box</b><span>fizyczny · 78 dni</span></div></div>
+      <div class="d-card"><div class="m"><em>Heat 74</em></div><div class="t"><b>Mini Blender Pro</b><span>fizyczny · 22 dni</span></div></div>
+      <div class="d-card"><div class="m"><em>Heat 70</em></div><div class="t"><b>Dropshipping Masterclass</b><span>kurs · 64 dni</span></div></div>
+      <div class="d-card"><div class="m"><em>Heat 65</em></div><div class="t"><b>Galaxy Projector</b><span>fizyczny · 29 dni</span></div></div>
+      <div class="d-card"><div class="m"><em>Heat 63</em></div><div class="t"><b>Dog GPS Collar</b><span>fizyczny · 55 dni</span></div></div>
+      <div class="d-card"><div class="m"><em>Heat 58</em></div><div class="t"><b>Notion Productivity Pack</b><span>cyfrowy · 43 dni</span></div></div>
+    </div>
+    <div class="d-side">
+      <h3>Posture Corrector Pro</h3>
+      <p>Panel deep dive otwiera się z boku po kliknięciu karty.</p>
+      <div class="stat"><span>Heat score</span><b style="color:var(--heat)">87</b></div>
+      <div class="stat"><span>Aktywna od</span><b>47 dni</b></div>
+      <div class="stat"><span>Skaluje od</span><b style="color:var(--profit)">8 dni</b></div>
+      <div class="stat"><span>Warianty reklam</span><b>12</b></div>
+      <div class="stat"><span>Kategoria</span><b>fizyczny</b></div>
+      <div class="stat"><span>Kraje EU</span><b>4</b></div>
+      <span class="btn">&#9825; Zapisz do boardu</span>
+    </div>
+  </div>
+</div>
+<p class="note" style="max-width:640px; margin-top:12px;">Desktop = dwa widoki: (1) Grid — domyślny, miniatury, hover odtwarza wideo; (2) Player — klik otwiera kreację 9:16 na środku + panel danych po prawej, nawigacja strzałkami, S=zapisz, Esc=grid. Wąski sidebar z lewej.</p>
+
+<h2>07 — Zasady dla Claude Code</h2>
+<p class="sub" style="line-height:1.9;">
+1. Wszystkie liczby w Geist Mono, zawsze zaokrąglone.&nbsp;
+2. Bursztyn (--heat) tylko dla: heat score, paska świeżości, głównego CTA, aktywnej zakładki.&nbsp;
+3. Mięta (--profit) wyłącznie dla sygnałów skalowania/wzrostu — nie dla pieniędzy.&nbsp;
+4. Trzy warstwy tła: void → surface → raised. Bez gradientów poza scrimem na dole wideo (rgba(11,11,14,.7)).&nbsp;
+5. Sentence case wszędzie. Ikony Lucide w kodzie.&nbsp;
+6. Gesty: pion = nawigacja (jak TikTok), poziom = decyzje, tap na markę = deep dive, tap na kreację = dźwięk.&nbsp;
+7. Animacje: spring na gestach (framer-motion), pasek świeżości przy wejściu kreacji — i nic więcej.&nbsp;
+8. Przycisk linku zewnętrznego = "strona" (nie "sklep").
+</p>
+
+</body>
+</html>

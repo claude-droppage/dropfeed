@@ -1,0 +1,41 @@
+/* ─── Raw design token values ─────────────────────────────────────────────── */
+:root {
+  /* Backgrounds — depth layers */
+  --bg-void:    #0B0B0E;
+  --bg-surface: #15151A;
+  --bg-raised:  #1C1C22;
+
+  /* Text */
+  --text-hi:  #F2F2F0;
+  --text-mid: #9C9CA4;
+  --text-lo:  #6E6E76;
+
+  /* Accents */
+  --heat:      #EF9F27;   /* amber: heat score, CTA, winner signal */
+  --heat-deep: #412402;   /* amber pill background */
+  --profit:    #9FE1CB;   /* mint: scaling / growth signal ONLY — not money */
+  --line:      #26262C;   /* borders */
+}
+
+/* ─── Tailwind v4 theme registration ─────────────────────────────────────── */
+/* Registers CSS variables as Tailwind utilities:                             */
+/*   --color-bg-void   →  bg-bg-void / text-bg-void / border-bg-void         */
+/*   --color-heat      →  bg-heat / text-heat / border-heat  etc.            */
+@theme inline {
+  --color-bg-void:    var(--bg-void);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-raised:  var(--bg-raised);
+
+  --color-text-hi:  var(--text-hi);
+  --color-text-mid: var(--text-mid);
+  --color-text-lo:  var(--text-lo);
+
+  --color-heat:      var(--heat);
+  --color-heat-deep: var(--heat-deep);
+  --color-profit:    var(--profit);
+  --color-line:      var(--line);
+
+  /* Border radius shortcuts */
+  --radius-card: 18px;
+  --radius-pill: 999px;
+}
