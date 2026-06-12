@@ -16,36 +16,41 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 **Fundament (punkty 1–6):**
 - **Inicjalizacja** — Next.js 16.2.9 + React 19 + TypeScript strict + Tailwind v4.3.1 + framer-motion 12 + @use-gesture/react 10 + lucide-react.
-- **`lib/types.ts`** — komplet encji: `Brand`, `Product`, `Ad`, `User`, `Board`, `SavedItem`, `Swipe`, `FeedItem`. Pole `format: 'video' | 'image'` na `Ad`, `offerType` i `confidence` na `Ad` i `Product`. BEZ pól marży/ceny źródłowej.
-- **`lib/data/mock.ts`** — 30 reklam, 10 brandów, 27 produktów. Mix nisz, heat score 41–95. Placeholder images: `picsum.photos/seed/{id}/360/640`.
-- **`lib/data/source.ts`** — abstrakcja: `getFeedItems()`, `getAdsByBrand()`, `getBrandById()`, `getProductById()`, `getAllBrands()`. Podmienić gdy Supabase gotowe.
-- **`lib/heat.ts`** — `computeHeatScore(input)` — czysta funkcja, 5 składników z PRD sekcja 9.
+- **`lib/types.ts`** — komplet encji: `Brand`, `Product`, `Ad`, `User`, `Board`, `SavedItem`, `Swipe`, `FeedItem`.
+- **`lib/data/mock.ts`** — 30 reklam, 10 brandów, 27 produktów. Placeholder images: `picsum.photos/seed/{id}/360/640`.
+- **`lib/data/source.ts`** — abstrakcja danych (podmienić na Supabase bez zmian w UI).
+- **`lib/heat.ts`** — `computeHeatScore(input)`, 5 składników z PRD sekcja 9.
 - **`styles/tokens.css`** — CSS vars + `@theme inline` dla Tailwind v4.
 
-**Ekran feed (punkt 7):**
-- **`components/feed/SwipeDeck.tsx`** — silnik gestów + animacje. Gesty: góra/dół = spring slide, prawo = save flyoff, lewo = skip flyoff. Resistance na granicach. `transitioning` ref blokuje re-entrancję.
-- **`components/feed/SwipeCard.tsx`** — pełnoekranowa karta: kreacja, scrim, top data bar (heat pill + typ oferty + dni + warianty + format), prawy pasek akcji (zapisz/deep-dive/strona), lewy dół (avatar + marka + pill "skaluje" + nazwa oferty), pasek świeżości.
-- **`components/feed/FeedView.tsx`** — client component: stan trybu + filtrowanie. Hot = top 10 wg heat score.
-- **`components/feed/ModeToggle.tsx`** — zakładki Inspiracje/Produkty/Gorące, aktywna = amber underline.
-- **`components/feed/CoachMark.tsx`** — overlay gestów przy pierwszym uruchomieniu (localStorage `dropfeed_coached_v1`), auto-dismiss 4s.
-- **`components/ui/BottomNav.tsx`** — Feed/Boardy/Odkrywaj/Profil z ikonami Lucide, aktywny = heat.
-- **`app/(app)/layout.tsx`** + szkielety Boardy/Odkrywaj/Profil + redirect `/` → `/feed`.
-- **`lib/i18n/pl.ts`** — wszystkie stringi UI.
+**Feed mobilny (punkt 7 mobile):**
+- **`components/feed/SwipeDeck.tsx`** — silnik gestów (@use-gesture) + animacje (framer-motion). Góra/dół = spring slide, prawo = save flyoff, lewo = skip flyoff. `transitioning` ref blokuje re-entrancję.
+- **`components/feed/SwipeCard.tsx`** — pełnoekranowa karta: kreacja, scrim, top data bar, prawy pasek akcji, lewy dół (marka + pill "skaluje"), pasek świeżości.
+- **`components/feed/FeedView.tsx`** — split `md:hidden` / `hidden md:block` (mobile vs desktop).
+- **`components/feed/ModeToggle.tsx`**, **`CoachMark.tsx`**, **`components/ui/BottomNav.tsx`**.
+- `app/(app)/layout.tsx` — BottomNav ukryty `md:hidden` (desktop ma własny top bar).
+
+**Feed desktop (punkt 7 desktop):**
+- **`components/feed/desktop/DesktopFeedView.tsx`** — orchestrator: stan `mode`, `view: 'grid'|'player'`, `selectedIdx`.
+- **`components/feed/desktop/DesktopTopBar.tsx`** — logo + search placeholder + linki nawigacyjne (aktywny przez `usePathname`).
+- **`components/feed/desktop/DesktopSidebar.tsx`** — lewy sidebar: w Grid = selector trybu; w Player = filmstrip miniatur z heat badge.
+- **`components/feed/desktop/DesktopGrid.tsx`** — 4-kolumnowa siatka `aspect-[9/12]`, hover scale + play overlay, heat badge, pasek świeżości, aktywna karta z amber ringiem.
+- **`components/feed/desktop/DesktopPlayer.tsx`** — kreacja 9:16 `height: min(600px, calc(100vh-200px))`, kontrolki ← →, skróty klawiaturowe: `←/→` nawigacja, `S` zapisz, `Esc` grid.
+- **`components/feed/desktop/DesktopDeepDive.tsx`** — prawy panel 280px: stats (heat, dni, scalingSince, warianty, kategoria, kraje), CTA "Zapisz do boardu", empty state.
 
 ### Decyzje techniczne
 
 - **Tailwind v4** — `@theme inline` w CSS, brak `tailwind.config.ts`. `--color-*` → klasy `bg-*`/`text-*`/`border-*`.
-- **Fonty** — Geist/Geist Mono przez `next/font/google`, eksponowane jako CSS vars, podłączone w `@theme inline`.
-- **`scalingSince`** — `undefined` = nie skaluje; mięta `--profit` pokazuje się TYLKO gdy ustawione.
-- **`confidence`** — przy niskim confidence UI pokazuje samą markę bez nazwy oferty.
-- **Gesty** — vertical priority: lockout kierunku po >10px ruchu; vertical = nawigacja, horizontal = decyzja.
-- **`animate(motionValue, target, opts)`** zwraca `AnimationPlaybackControlsWithThen` — używamy `await` dla sekwencji wejście/wyjście.
-- **Video** — renderuje `<video>` TYLKO gdy URL kończy się `.mp4/.webm/.mov`; mock data = picsum = `<img>`.
-- **`key={index}`** na motion.div w SwipeDeck = remount karty przy zmianie; motion values (x, y, rotation) trwają pomiędzy kartami.
+- **Responsive split** — `FeedView` renderuje oba widoki jednocześnie (`md:hidden` / `hidden md:block`); każdy ma własny stan trybu i selekcji. Brak SSR/useMediaQuery — czyste CSS.
+- **Desktop layout** — `flex flex-col h-full` → TopBar (shrink-0) + `flex flex-1 min-h-0` → Sidebar + main + DeepDive. `min-h-0` krytyczne dla poprawnego flex overflow.
+- **Player kreacja** — `height: min(600px, calc(100vh-200px))` + `aspect-ratio: 9/16` zamiast `h-full`, żeby nie przekroczyć szerokości kontenera.
+- **Hover video** — `<video>` renderuje się TYLKO gdy URL kończy się `.mp4/.webm/.mov`; dla mock (picsum) = `<img>` + wizualny overlay play.
+- **Keyboard handler** — `useEffect` z `window.addEventListener('keydown')` w DesktopPlayer; ignoruje eventy gdy focus na `<input>`.
+- **`scalingSince`** — `undefined` = nie skaluje; mięta pokazuje się TYLKO gdy ustawione (i w mobile, i desktop).
+- **`animate(motionValue, target, opts)`** — framer-motion v12 zwraca `AnimationPlaybackControlsWithThen` (awaitable).
 
 ### Następny krok
 
-Punkt 8 — dopracowanie UX: deep-dive sheet (tap na markę), zapis do boardu (long-press prawej strony karty), animacja heart przy save.
+Punkt 8 — deep-dive sheet na mobile (tap na markę), zapis do boardu (long-press), animacja heart przy save.
 
 ## Stack (decyzje podjęte — nie zmieniać bez pytania)
 
