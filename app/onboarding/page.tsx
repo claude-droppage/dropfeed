@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Check } from 'lucide-react'
+import { Package, Cpu, Sparkles, Compass, Check, ArrowRight } from 'lucide-react'
 import {
   INTENT_CONFIG,
   ONBOARDING_NICHES,
@@ -12,38 +11,26 @@ import {
 } from '@/lib/preferences'
 
 const ONBOARDED_COOKIE = 'dropfeed_onboarded=1; path=/; max-age=31536000; SameSite=Strict'
-
 const INTENT_ORDER: IntentKey[] = ['physical', 'digital', 'inspirations', 'any']
 
-const slideVariants = {
-  enter: (dir: number) => ({
-    x: dir > 0 ? '100%' : '-100%',
-    opacity: 0,
-  }),
-  center: { x: 0, opacity: 1 },
-  exit: (dir: number) => ({
-    x: dir > 0 ? '-100%' : '100%',
-    opacity: 0,
-  }),
+const INTENT_ICON: Record<IntentKey, React.ReactNode> = {
+  physical:     <Package size={20} />,
+  digital:      <Cpu size={20} />,
+  inspirations: <Sparkles size={20} />,
+  any:          <Compass size={20} />,
 }
 
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
-  const [dir, setDir] = useState(1)
   const [intent, setIntent] = useState<IntentKey | null>(null)
   const [niches, setNiches] = useState<string[]>([])
 
-  const goNext = () => {
-    setDir(1)
-    setStep(1)
-  }
-
-  const toggleNiche = (key: string) => {
+  const goNext = () => setStep(1)
+  const toggleNiche = (key: string) =>
     setNiches((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     )
-  }
 
   const finish = () => {
     if (!intent) return
@@ -55,154 +42,142 @@ export default function OnboardingPage() {
 
   return (
     <div className="h-dvh bg-bg-void flex flex-col overflow-hidden">
-      {/* Logo */}
-      <div className="px-6 pt-12 pb-4 shrink-0">
+
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <div className="px-6 pt-12 pb-2 shrink-0 flex items-center justify-between">
         <p className="font-mono text-[15px] font-medium tracking-[.5px] text-text-hi">
           dropfeed<span className="text-heat">_</span>
         </p>
+        <div className="flex gap-1.5 items-center">
+          <div className={`h-[3px] rounded-full transition-all duration-300 ${step === 0 ? 'w-5 bg-heat' : 'w-3 bg-heat/60'}`} />
+          <div className={`h-[3px] rounded-full transition-all duration-300 ${step === 1 ? 'w-5 bg-heat' : 'w-3 bg-line'}`} />
+        </div>
       </div>
 
-      {/* Step dots */}
-      <div className="flex gap-2 px-6 pb-6 shrink-0">
-        {[0, 1].map((i) => (
-          <div
-            key={i}
-            className={`h-1 rounded-full transition-all duration-300 ${
-              i === step ? 'bg-heat w-6' : i < step ? 'bg-heat/50 w-4' : 'bg-line w-4'
-            }`}
-          />
-        ))}
-      </div>
+      {/* ── Content (scrollable) ────────────────────────────────── */}
+      <div className="flex-1 flex flex-col px-6 pt-8 pb-0 overflow-y-auto">
 
-      {/* Steps — initial={false} prevents slide-in on first mount */}
-      <div className="flex-1 relative overflow-hidden">
-        <AnimatePresence custom={dir} mode="wait" initial={false}>
-          {step === 0 && (
-            <motion.div
-              key="step0"
-              custom={dir}
-              variants={slideVariants}
-              initial="center"
-              animate="center"
-              exit="exit"
-              transition={{ type: 'spring', stiffness: 340, damping: 36 }}
-              className="absolute inset-0 flex flex-col px-6"
-            >
-              <p className="text-text-hi text-2xl font-semibold mb-1">
-                Czego szukasz?
-              </p>
-              <p className="text-text-lo text-sm mb-8">
-                Dopasujemy feed do Twoich celów.
-              </p>
+        {step === 0 ? (
+          <>
+            <h1 className="text-[26px] font-bold text-text-hi tracking-tight leading-tight mb-2">
+              Czego szukasz?
+            </h1>
+            <p className="text-text-lo text-sm mb-8 leading-relaxed">
+              Dopasujemy feed do Twoich celów
+            </p>
 
-              <div className="flex flex-col gap-3 flex-1">
-                {INTENT_ORDER.map((key) => {
-                  const cfg = INTENT_CONFIG[key]
-                  const active = intent === key
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => setIntent(key)}
-                      className={`text-left px-4 py-4 rounded-2xl border transition-all ${
-                        active
-                          ? 'bg-heat-deep border-heat/60'
-                          : 'bg-bg-surface border-line'
+            <div className="flex flex-col gap-3">
+              {INTENT_ORDER.map((key) => {
+                const cfg = INTENT_CONFIG[key]
+                const active = intent === key
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setIntent(key)}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border text-left w-full transition-all duration-150 ${
+                      active
+                        ? 'bg-heat-deep border-heat/50'
+                        : 'bg-bg-surface border-line active:bg-bg-raised'
+                    }`}
+                  >
+                    {/* icon */}
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        active ? 'bg-heat/20 text-heat' : 'bg-bg-raised text-text-lo'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p
-                            className={`text-sm font-medium leading-tight ${
-                              active ? 'text-heat' : 'text-text-hi'
-                            }`}
-                          >
-                            {cfg.label}
-                          </p>
-                          <p className="text-text-lo text-xs mt-1 leading-snug">
-                            {cfg.sub}
-                          </p>
-                        </div>
-                        <div
-                          className={`w-5 h-5 rounded-full border shrink-0 mt-0.5 flex items-center justify-center transition-all ${
-                            active ? 'bg-heat border-heat' : 'border-line'
-                          }`}
-                        >
-                          {active && <Check size={12} strokeWidth={2.5} className="text-bg-void" />}
-                        </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+                      {INTENT_ICON[key]}
+                    </div>
 
-              <div className="py-8 shrink-0">
-                <button
-                  onClick={goNext}
-                  disabled={!intent}
-                  className="w-full flex items-center justify-center gap-2 bg-heat text-[#2A1700] font-semibold text-sm py-3.5 rounded-2xl disabled:opacity-30 transition-opacity"
-                >
-                  Dalej <ArrowRight size={16} />
-                </button>
-              </div>
-            </motion.div>
-          )}
+                    {/* text */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold mb-0.5 ${active ? 'text-heat' : 'text-text-hi'}`}>
+                        {cfg.label}
+                      </p>
+                      <p className="text-xs text-text-lo leading-snug">{cfg.sub}</p>
+                    </div>
 
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              custom={dir}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: 'spring', stiffness: 340, damping: 36 }}
-              className="absolute inset-0 flex flex-col px-6"
-            >
-              <p className="text-text-hi text-2xl font-semibold mb-1">
-                Jakie nisze Cię interesują?
-              </p>
-              <p className="text-text-lo text-sm mb-6">
-                Wybierz kilka — feed pokaże je częściej.
-              </p>
-
-              <div className="flex flex-wrap gap-2.5 flex-1 content-start">
-                {ONBOARDING_NICHES.map(({ key, label }) => {
-                  const active = niches.includes(key)
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => toggleNiche(key)}
-                      className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm transition-all ${
-                        active
-                          ? 'bg-heat-deep border-heat/60 text-heat'
-                          : 'bg-bg-surface border-line text-text-mid'
+                    {/* radio */}
+                    <div
+                      className={`w-5 h-5 rounded-full border shrink-0 flex items-center justify-center transition-all ${
+                        active ? 'bg-heat border-heat' : 'border-line'
                       }`}
                     >
-                      {active && <Check size={12} strokeWidth={2.5} />}
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
+                      {active && <Check size={10} strokeWidth={3} className="text-bg-void" />}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className="text-[26px] font-bold text-text-hi tracking-tight leading-tight mb-2">
+              Twoje nisze
+            </h1>
+            <p className="text-text-lo text-sm mb-6 leading-relaxed">
+              Wybierz kilka — pojawią się częściej w feedzie
+            </p>
 
-              <div className="py-8 shrink-0">
-                <button
-                  onClick={finish}
-                  className="w-full flex items-center justify-center gap-2 bg-heat text-[#2A1700] font-semibold text-sm py-3.5 rounded-2xl transition-opacity"
-                >
-                  Zacznij przeglądać <ArrowRight size={16} />
-                </button>
-                <button
-                  onClick={finish}
-                  className="w-full text-center text-text-lo text-xs mt-3"
-                >
-                  pomiń — wybiorę później
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <div className="flex flex-wrap gap-2.5">
+              {ONBOARDING_NICHES.map(({ key, label }) => {
+                const active = niches.includes(key)
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleNiche(key)}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm transition-all duration-150 ${
+                      active
+                        ? 'bg-heat-deep border-heat/50 text-heat font-medium'
+                        : 'bg-bg-surface border-line text-text-mid active:bg-bg-raised'
+                    }`}
+                  >
+                    {active && <Check size={11} strokeWidth={3} />}
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {/* spacer so content doesn't hide behind CTA */}
+        <div className="shrink-0 h-32" />
       </div>
+
+      {/* ── CTA (sticky bottom) ─────────────────────────────────── */}
+      <div className="shrink-0 px-6 pb-10 pt-4 bg-gradient-to-t from-bg-void via-bg-void/95 to-transparent">
+        {step === 0 ? (
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!intent}
+            className="w-full flex items-center justify-center gap-2 bg-heat text-[#2A1700] font-bold text-[15px] py-[15px] rounded-2xl disabled:opacity-25 transition-opacity active:scale-[.98]"
+          >
+            Dalej <ArrowRight size={18} />
+          </button>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={finish}
+              className="w-full flex items-center justify-center gap-2 bg-heat text-[#2A1700] font-bold text-[15px] py-[15px] rounded-2xl active:scale-[.98] transition-transform"
+            >
+              Zacznij przeglądać <ArrowRight size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={finish}
+              className="w-full text-center text-text-lo text-xs py-1"
+            >
+              pomiń — wybiorę później
+            </button>
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }
