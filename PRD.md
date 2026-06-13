@@ -140,7 +140,18 @@ Pełny model: reklama → produkt → sklep → IG. Relacje:
 - **saved_item**: powiązanie board → ad/product, data zapisu
 - **swipe**: user, adId, kierunek (skip/save/deep), timestamp → zasila personalizację
 
-> Pełen schemat SQL powstaje w Etapie 1 (pipeline). W Etapie 2 używamy typów TypeScript, które 1:1 odwzorowują te encje, oraz pliku mock-danych zgodnego z tymi typami.
+Tabele infrastrukturalne pipeline'u (nie są encjami UI, ale są częścią schematu):
+
+- **raw_ads** (staging): surowy scrape z Apify/TikTok przed enrichmentem — `ad_archive_id`, `source`, `payload` (jsonb), `scraped_at`, `processed`/`processed_at`. Stąd enrichment zasila tabelę `ads`.
+- **scrape_config**: konfiguracja zadań pozyskiwania — `source`, `query`, `country`, `niche`, `is_active`, `max_results`, `last_run_at`.
+
+> **Źródło prawdy schematu = `supabase/migrations/0001_init.sql`** (9 tabel: 7 encji powyżej + `raw_ads`, `scrape_config`). Schemat istnieje od Etapu 1 krok 1. Typy TypeScript w `lib/types.ts` odwzorowują encje domenowe 1:1; mock-dane są z nimi zgodne, by podmiana źródła była bezbolesna (zrealizowana w kroku 2 — `lib/data/source.ts` czyta z Supabase).
+
+**Row-Level Security (RLS) — włączone na wszystkich 9 tabelach:**
+
+- **Treść publiczna** (`brands`, `products`, `ads`): odczyt dla wszystkich (anon + zalogowani); zapis wyłącznie `service_role` (pipeline/seed).
+- **Dane użytkownika** (`users`, `boards`, `saved_items`, `swipes`): user widzi i edytuje tylko swoje — polityki na `auth.uid()`.
+- **Infrastruktura** (`raw_ads`, `scrape_config`): RLS włączone, zero polityk → dostęp wyłącznie przez `service_role` (omija RLS); klient nie ma dostępu.
 
 **Ważne decyzje:**
 - BEZ pól marży i cen źródłowych — marży nie ma w produkcie w ogóle
@@ -195,7 +206,7 @@ Dlatego kreacje hostujemy u siebie, nie linkujemy do wygasających URL-i Mety.
 ## 14. Ryzyka i compliance (świadomie)
 
 - Scraping Ad Library = dane publiczne, ale: polityka prywatności z podstawą "uzasadniony interes", procedura usunięcia na żądanie.
-- Kreacje reklamowe — trzymać miniatury/embedy, nie pełne kopie; procedura takedown 48h.
+- Kreacje reklamowe — hostujemy **pełne, przetranskodowane wideo u siebie na Cloudflare R2** (jak Minea/WinningHunter), nie linkujemy do wygasających URL-i Mety. Uzasadnienie techniczne: feed gra wideo od razu podczas scrollowania (patrz §13.5). Procedura takedown 48h obowiązkowa. *(Decyzja aktualna — zastępuje wcześniejszą koncepcję "tylko miniatury/embedy".)*
 - Konstrukcja prawna: osobna działalność/spółka, nie pod istniejącym e-commerce.
 - Zależność od aktora Apify: warstwa pozyskiwania wymienialna (abstrakcja), drugi aktor w zapasie.
 - Hosting cudzych kreacji u siebie (jak Minea/WinningHunter): wymaga PRZED launchem procedury takedown (usunięcie na żądanie), osobnej spółki/działalności, polityki prywatności. Świadomie przyjęte ryzyko — standard w branży ad-spy.

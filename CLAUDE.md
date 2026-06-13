@@ -10,7 +10,13 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 ## Aktualny etap
 
-**Etap 2 — ukończony (2026-06-13).** Feed na mock-danych z pełnym UX: swipe, gesty, boardy, deep-dive, onboarding. Architektura gotowa na podmianę Supabase. Następny krok: Etap 1 (pipeline danych).
+**Etap 2 — ukończony (2026-06-13).** Feed na mock-danych z pełnym UX: swipe, gesty, boardy, deep-dive, onboarding. Architektura gotowa na podmianę Supabase.
+
+**Etap 1 — w toku (pipeline danych).** Kroki 1–2 gotowe; pozostały scraping, enrichment, hosting wideo, automatyzacja.
+
+- **Krok 1 — GOTOWE: schemat bazy.** Supabase, 9 tabel w `supabase/migrations/0001_init.sql`: `raw_ads`, `brands`, `products`, `ads`, `users`, `boards`, `saved_items`, `swipes`, `scrape_config`. Enumy 1:1 z `lib/types.ts`; **Row-Level Security na każdej tabeli** (treść publiczna = odczyt dla wszystkich/zapis tylko service_role; dane usera za `auth.uid()`; `raw_ads`/`scrape_config` tylko service_role); indeksy (m.in. `ads.heat_score desc`, `offer_type`, `niche`, unikaty na `ad_archive_id`); klucze obce (products/ads→brands, ads→products, boards/swipes→users, saved_items→boards/ads/products, users→auth.users); trigger `set_updated_at`; auto-tworzenie wiersza `users` przy rejestracji. Weryfikacja: `supabase/verify.sql`. Migracja idempotentna (bezpieczna do ponownego wklejenia).
+- **Krok 2 — GOTOWE: seed + source.ts na Supabase.** `scripts/seed.ts` (`npm run seed`) — idempotentny seed mocków do bazy: UPSERT po deterministycznym UUID v5 z mock-id (ponowny run nie duplikuje), kolejność `brands→products→ads`, **service_role tylko server-side** (czyta `SUPABASE_SERVICE_ROLE_KEY` z `.env.local`, Node natywnie strippuje typy — zero nowych zależności). `lib/data/source.ts` rozbity na `source.supabase.ts` (zapytania do Supabase, mapowanie snake_case→camelCase, sort po `heat_score`, `ads+brands+products` → `FeedItem`, `getAdsByBrand` do deep-dive) i `source.mock.ts` (fallback). **Przełącznik `NEXT_PUBLIC_DATA_SOURCE=supabase|mock`** (domyślnie `supabase`; prefiks `NEXT_PUBLIC_`, bo deep-dive i ważenie nisz pytają bazę po stronie klienta przez anon key). Funkcje warstwy danych są teraz `async`; konsumenci na `await` (feed page = async server component; FeedGate/DeepDiveSheet/DesktopDeepDive przez `useEffect`).
+- **Następne kroki Etapu 1:** Apify (scraping Meta Ad Library → `raw_ads`) → enrichment Claude Haiku (klasyfikacja `offer_type`/`niche`/`angle`/`hook` + `confidence` + heat score → `ads`) → Cloudflare R2 (pobieranie + transkodowanie wideo do ~3-5 MB, `creative_url`/`thumb_url`) → automatyzacja (harmonogram/trigger). Szczegóły zadania: sekcja "Drugie zadanie" niżej.
 
 ### Co istnieje — kompletna lista
 
@@ -72,11 +78,12 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 - Coach mark z objaśnieniem ikon górnego paska (ikony bez podpisów przy pierwszej karcie)
 - Pełne UX desktopu (brak testów cross-browser, brak finalizacji)
-- Cały Etap 1: Supabase schema + migracje, Apify scraper, enrichment Claude Haiku, Cloudflare R2 + transkodowanie wideo
+- **Logika feedu NIE jest kompletna (rozjazd z PRD §11).** Zaimplementowane jest tylko **grupowanie**: `getNicheWeightedItems` przesuwa preferowane nisze na górę kolejki. NIE ma **wstrzykiwania różnorodności** (PRD §11 "KRYTYCZNE: feed nigdy nie pokazuje 100% jednej kategorii, co 10-20 pozycji coś innego") ani **miękkiego ważenia** na sygnałach swipe (save/skip — "częściej/rzadziej, nie tak/nie"). Obecny sort jest twardszy niż zakłada PRD. Dodatkowo **zmiana filtra `offerType` w locie z poziomu feedu** (PRD §11 pkt 2) — do potwierdzenia/dorobienia: `initialOfferTypes` jest przekazywane z onboardingu, ale przełączanie w trakcie sesji jest nieweryfikowane.
+- **Dalsze kroki Etapu 1** (scraping Apify, enrichment Haiku, R2 + transkodowanie wideo, automatyzacja) — kroki 1–2 (schemat + warstwa danych) są już gotowe, patrz "Aktualny etap".
 
 ### Następny krok
 
-Etap 1 — pipeline danych (Supabase, Apify, enrichment, R2). Szczegóły w sekcji "Drugie zadanie" poniżej.
+Etap 1, dalsze kroki: Apify (scraping) → enrichment Haiku → R2 (wideo) → automatyzacja. Schemat bazy i warstwa danych (kroki 1–2) są gotowe — patrz "Aktualny etap". Szczegóły zadania: sekcja "Drugie zadanie" poniżej.
 
 ## Stack (decyzje podjęte — nie zmieniać bez pytania)
 
