@@ -1,50 +1,23 @@
 /**
- * Data abstraction layer — the only place UI components read data from.
+ * Data abstraction layer — jedyne miejsce, z którego UI czyta dane.
  *
- * Currently backed by local mock data (Etap 2).
- * When Supabase is ready (Etap 1), replace the implementations here
- * without touching any UI component.
+ * Przełącznik źródła: NEXT_PUBLIC_DATA_SOURCE = 'supabase' (domyślnie) | 'mock'.
+ * Obie implementacje mają identyczne sygnatury (async), więc UI nie wie skąd
+ * pochodzą dane. Powrót do mocków = zmiana jednej zmiennej w .env.local.
+ *
+ *   UI → source.ts → source.supabase.ts  (domyślnie)
+ *                  → source.mock.ts       (NEXT_PUBLIC_DATA_SOURCE=mock)
  */
 
-import { brands, products, ads } from './mock'
-import type { FeedItem, Brand, Product, Ad, Niche } from '@/lib/types'
+import * as mock from './source.mock'
+import * as supabase from './source.supabase'
 
-export function getFeedItems(): FeedItem[] {
-  return ads.map(ad => ({
-    ad,
-    brand: brands.find(b => b.id === ad.brandId)!,
-    product: products.find(p => p.id === ad.productId),
-  }))
-}
+const useMock = process.env.NEXT_PUBLIC_DATA_SOURCE === 'mock'
+const impl = useMock ? mock : supabase
 
-/**
- * Returns feed items sorted so preferred niches appear first.
- * Items within each group retain original order (by heatScore from mock).
- * When Supabase lands this becomes a weighted query.
- */
-export function getNicheWeightedItems(preferredNiches: Niche[]): FeedItem[] {
-  const items = getFeedItems()
-  if (!preferredNiches.length) return items
-  const preferred = new Set<Niche>(preferredNiches)
-  return [...items].sort((a, b) => {
-    const aNiche = a.product?.niche ?? 'other'
-    const bNiche = b.product?.niche ?? 'other'
-    return (preferred.has(bNiche) ? 1 : 0) - (preferred.has(aNiche) ? 1 : 0)
-  })
-}
-
-export function getBrandById(brandId: string): Brand | undefined {
-  return brands.find(b => b.id === brandId)
-}
-
-export function getAdsByBrand(brandId: string): Ad[] {
-  return ads.filter(a => a.brandId === brandId)
-}
-
-export function getProductById(productId: string): Product | undefined {
-  return products.find(p => p.id === productId)
-}
-
-export function getAllBrands(): Brand[] {
-  return brands
-}
+export const getFeedItems = impl.getFeedItems
+export const getNicheWeightedItems = impl.getNicheWeightedItems
+export const getBrandById = impl.getBrandById
+export const getAdsByBrand = impl.getAdsByBrand
+export const getProductById = impl.getProductById
+export const getAllBrands = impl.getAllBrands

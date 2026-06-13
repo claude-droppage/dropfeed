@@ -16,17 +16,29 @@ export default function FeedGate({ serverItems }: Props) {
   const [items, setItems] = useState<FeedItem[]>(serverItems)
 
   useEffect(() => {
+    let cancelled = false
     const prefs = loadPreferences()
     if (prefs?.intent && prefs?.feedMode) {
       try {
         const niches = resolveNiches(prefs.niches ?? [])
-        setItems(niches.length ? getNicheWeightedItems(niches) : serverItems)
+        if (niches.length) {
+          getNicheWeightedItems(niches)
+            .then((weighted) => {
+              if (!cancelled) setItems(weighted)
+            })
+            .catch(() => {
+              // use serverItems (already in state)
+            })
+        }
       } catch {
         // use serverItems (already in state)
       }
     }
     // middleware guarantees user has been onboarded — always render
     setReady(true)
+    return () => {
+      cancelled = true
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

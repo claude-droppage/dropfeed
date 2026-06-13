@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import type { Brand, Ad } from '@/lib/types'
@@ -13,7 +14,22 @@ interface Props {
 }
 
 export default function DeepDiveSheet({ brand, onSelectAd, onClose }: Props) {
-  const brandAds = brand ? getAdsByBrand(brand.id) : []
+  const [brandAds, setBrandAds] = useState<Ad[]>([])
+
+  useEffect(() => {
+    if (!brand) return
+    let cancelled = false
+    getAdsByBrand(brand.id)
+      .then((ads) => {
+        if (!cancelled) setBrandAds(ads)
+      })
+      .catch(() => {
+        if (!cancelled) setBrandAds([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [brand])
 
   return (
     <AnimatePresence>

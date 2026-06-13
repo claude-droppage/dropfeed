@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Heart } from 'lucide-react'
 import type { FeedItem, Ad } from '@/lib/types'
 import { getAdsByBrand } from '@/lib/data/source'
@@ -12,6 +13,24 @@ interface Props {
 }
 
 export default function DesktopDeepDive({ item, onSave, onSelectAd }: Props) {
+  const brandId = item?.brand.id ?? null
+  const [brandAds, setBrandAds] = useState<Ad[]>([])
+
+  useEffect(() => {
+    if (!brandId) return
+    let cancelled = false
+    getAdsByBrand(brandId)
+      .then((ads) => {
+        if (!cancelled) setBrandAds(ads)
+      })
+      .catch(() => {
+        if (!cancelled) setBrandAds([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [brandId])
+
   if (!item) {
     return (
       <aside className="w-[280px] shrink-0 border-l border-line bg-bg-surface flex items-center justify-center p-6">
@@ -23,7 +42,6 @@ export default function DesktopDeepDive({ item, onSave, onSelectAd }: Props) {
   }
 
   const { brand } = item
-  const brandAds = getAdsByBrand(brand.id)
 
   return (
     <aside className="w-[280px] shrink-0 border-l border-line bg-bg-surface flex flex-col overflow-hidden">
