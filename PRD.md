@@ -189,7 +189,11 @@ Stripe jako bramka. Paywall w Etapie 4.
 - **TikTok Creative Center** — darmowe, top ady e-commerce.
 - **Enrichment** każdej pozycji przez Claude API (Haiku, batch): klasyfikacja kategorii oferty, niszy, angle, hook + policzenie heat score.
 
-**Klasyfikator kategorii:** Claude przypisuje każdej reklamie kategorię oferty: `fizyczny / cyfrowy / aplikacja / usługa / kurs / inne`. Identyfikacja oferty przez landing page — link docelowy → tytuł strony + OG tags. Pola z landinga noszą `confidence` (0–1); przy niskim confidence UI pokazuje samą markę.
+**Orkiestracja — model PUSH (decyzja):** harmonogram jest po stronie Apify. **Apify Schedule** odpala aktora scrapującego codziennie (np. 04:00). Po zakończeniu runu Apify wysyła **webhook** do **Supabase Edge Function**, która pobiera gotowy dataset z Apify API i robi `upsert` do `raw_ads` (dedup po `ad_archive_id`). Osobny krok enrichmentu przetwarza potem wiersze `raw_ads` z `processed = false` → zapisuje do `ads`. **Świadomie NIE model pull:** Supabase nie wywołuje aktora i nie czeka na scraping — Edge Functions mają limit czasu wykonania, a scraping trwa za długo. Apify steruje harmonogramem i długością runu; Supabase tylko odbiera gotowy wynik.
+
+**Pierwszy run wąski:** pierwszy scraping celowo wąski, sterowany przez `scrape_config` — 1-2 nisze, ograniczone kraje, limit ~500 reklam. Cel: zwalidować koszt (Apify + enrichment Claude) i jakość klasyfikacji, zanim rozszerzymy zakres na wszystkie kraje/nisze.
+
+**Klasyfikator kategorii:** Claude przypisuje każdej reklamie kategorię oferty: `fizyczny / cyfrowy / aplikacja / usługa / kurs / inne`. Identyfikacja oferty przez landing page — link docelowy → tytuł strony + OG tags. Pola z landinga noszą `confidence` (0–1); przy niskim confidence (`< 0.7`, zgodnie z kodem feedu) UI pokazuje samą markę bez nazwy oferty.
 
 **Ścieżka natywna:** start jako PWA → walidacja → Capacitor → App Store + Google Play + natywne push.
 
@@ -199,8 +203,9 @@ Feed działa jak TikTok — wideo gra od razu podczas scrollowania, nie po klikn
 Dlatego kreacje hostujemy u siebie, nie linkujemy do wygasających URL-i Mety.
 
 - Storage: Cloudflare R2 (zero opłat egress — kluczowe przy wideo oglądanym masowo; $0.015/GB/mies storage). Nie S3 (egress zabija budżet przy wideo).
-- Przy zaciąganiu: wideo z Meta jest transkodowane i kompresowane do ~3-5 MB (9:16, bitrate pod telefon) PRZED zapisem do R2. Nie zapisujemy surowych oryginałów.
-- `thumb_url` (poster/pierwsza klatka) też w R2, jako plakat wideo zanim załaduje się strumień.
+- **Na start BEZ transkodowania:** wideo zapisujemy na R2 tak jak pobrane z Meta — widoczne w feedzie od pierwszego runu (R2 = zero egress, koszt storage to grosze nawet bez kompresji).
+- **Kompresja do ~3-5 MB (9:16, bitrate pod telefon) = późniejsza optymalizacja**, przez własny worker z `ffmpeg`. Nie blokuje uruchomienia pipeline'u. **NIE Cloudflare Stream** — Stream liczy za minuty oglądane, co jest drogie przy feedzie oglądanym masowo.
+- `thumb_url` (poster/pierwsza klatka) w R2, jako plakat wideo zanim załaduje się strumień.
 - Koszt: faza startowa ~$0.12/mies, faza wzrostu (50k wideo) <$5/mies, skala <$10/mies.
 
 ## 14. Ryzyka i compliance (świadomie)
