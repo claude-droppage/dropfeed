@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { FeedItem, FeedMode } from '@/lib/types'
+import type { Ad } from '@/lib/types'
 import DesktopTopBar from './DesktopTopBar'
 import DesktopSidebar from './DesktopSidebar'
 import DesktopGrid from './DesktopGrid'
@@ -35,6 +36,14 @@ export default function DesktopFeedView({ items }: Props) {
   const handleClose = () => {
     setView('grid')
     // keep selectedIdx so the selected card stays highlighted in grid
+  }
+
+  const handleSelectAdFromDeepDive = (ad: Ad) => {
+    const idx = filtered.findIndex((item) => item.ad.id === ad.id)
+    if (idx >= 0) {
+      setSelectedIdx(idx)
+      setView('player')
+    }
   }
 
   const handleModeChange = (m: FeedMode) => {
@@ -81,9 +90,8 @@ export default function DesktopFeedView({ items }: Props) {
         {/* Right deep-dive panel */}
         <DesktopDeepDive
           item={selectedItem}
-          onSave={() => {
-            /* TODO: save to board */
-          }}
+          onSave={() => { /* TODO: save to board */ }}
+          onSelectAd={handleSelectAdFromDeepDive}
         />
       </div>
     </div>

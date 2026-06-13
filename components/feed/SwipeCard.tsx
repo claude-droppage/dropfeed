@@ -28,9 +28,10 @@ interface Props {
   onSave: () => void
   onSkip: () => void
   onToggleMute: () => void
+  onDeepDive: () => void
 }
 
-export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute }: Props) {
+export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute, onDeepDive }: Props) {
   const { ad, brand, product } = item
   const freshnessWidth = `${Math.min((ad.ageInDays / 90) * 100, 100).toFixed(0)}%`
   const showOfferName = product && product.confidence >= 0.7
@@ -105,7 +106,7 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute 
         <ActionBtn
           icon={<ArrowUpRight size={18} />}
           label={pl.feed.actions.deepDive}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onDeepDive() }}
         />
         {brand.storeUrl && (
           <ActionBtn
@@ -119,8 +120,11 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute 
         )}
       </div>
 
-      {/* Bottom-left brand info */}
-      <div className="absolute left-3 right-[72px] bottom-4 pointer-events-none">
+      {/* Bottom-left brand info — tap opens deep dive */}
+      <button
+        className="absolute left-3 right-[72px] bottom-4 text-left"
+        onClick={(e) => { e.stopPropagation(); onDeepDive() }}
+      >
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           {/* Avatar */}
           <div className="w-7 h-7 rounded-full bg-[rgba(38,38,44,0.95)] flex items-center justify-center text-[10px] font-medium text-profit shrink-0">
@@ -140,7 +144,7 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute 
             {product.name}
           </p>
         )}
-      </div>
+      </button>
 
       {/* Freshness bar */}
       <div className="absolute bottom-0 inset-x-0 h-1 bg-line pointer-events-none">
