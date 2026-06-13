@@ -10,61 +10,73 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 ## Aktualny etap
 
-**Etap 2 — Feed na mock-danych.** Budujemy front feedu czytający z lokalnego pliku mock-danych, BEZ backendu i bez prawdziwego scrapingu. Cel: dopracować UX swipe'a i kartę zanim podłączymy realne dane. Pipeline danych (Apify, Supabase) przychodzi później (Etap 1 w numeracji danych) — ale architektura ma być na niego gotowa od teraz.
+**Etap 2 — ukończony (2026-06-13).** Feed na mock-danych z pełnym UX: swipe, gesty, boardy, deep-dive, onboarding. Architektura gotowa na podmianę Supabase. Następny krok: Etap 1 (pipeline danych).
 
-### Co jest ukończone (2026-06-12) — punkty 1–9 ✅
+### Co istnieje — kompletna lista
 
-**Fundament (punkty 1–6):**
-- **Inicjalizacja** — Next.js 16.2.9 + React 19 + TypeScript strict + Tailwind v4.3.1 + framer-motion 12 + @use-gesture/react 10 + lucide-react.
-- **`lib/types.ts`** — komplet encji: `Brand`, `Product`, `Ad`, `User`, `Board`, `SavedItem`, `Swipe`, `FeedItem`.
-- **`lib/data/mock.ts`** — 30 reklam, 10 brandów, 27 produktów. Placeholder images: `picsum.photos/seed/{id}/360/640`.
-- **`lib/data/source.ts`** — abstrakcja danych (podmienić na Supabase bez zmian w UI).
-- **`lib/heat.ts`** — `computeHeatScore(input)`, 5 składników z PRD sekcja 9.
-- **`styles/tokens.css`** — CSS vars + `@theme inline` dla Tailwind v4.
+**Fundament:**
+- Next.js 16.2.9 + React 19 + TypeScript strict + Tailwind v4.3.1 + framer-motion 12 + @use-gesture/react 10 + lucide-react
+- `lib/types.ts` — komplet encji: `Brand`, `Product`, `Ad`, `User`, `Board`, `SavedItem`, `Swipe`, `FeedItem`
+- `lib/data/mock.ts` — 30 reklam, 10 brandów, 27 produktów; placeholder images: `picsum.photos/seed/{id}/360/640`
+- `lib/data/source.ts` — abstrakcja danych z `getFeedItems()`, `getAdsByBrand()`, `getNicheWeightedItems()`
+- `lib/heat.ts` — `computeHeatScore(input)`, 5 składników
+- `styles/tokens.css` — CSS vars + `@theme inline` dla Tailwind v4
 
-**Feed mobilny (punkt 7 mobile):**
-- **`components/feed/SwipeDeck.tsx`** — silnik gestów + animacje. Góra/dół = spring slide, prawo = save flyoff, lewo = skip flyoff. `transitioning` ref blokuje re-entrancję. Teraz zawiera też integrację boardów (patrz niżej).
-- **`components/feed/SwipeCard.tsx`** — pełnoekranowa karta: kreacja, scrim, top data bar, prawy pasek akcji, lewy dół (marka + pill "skaluje"), pasek świeżości.
-- **`components/feed/FeedView.tsx`** — split `md:hidden` / `hidden md:block` (mobile vs desktop).
-- **`components/feed/ModeToggle.tsx`**, **`CoachMark.tsx`**, **`components/ui/BottomNav.tsx`**.
-- `app/(app)/layout.tsx` — BottomNav ukryty `md:hidden` (desktop ma własny top bar).
+**Feed — mobile:**
+- `SwipeDeck` — silnik gestów (@use-gesture) + framer-motion; góra/dół = slide, prawo = save flyoff z `SaveFeedback`, lewo = skip; długi przytrzymanie 450ms = `BoardPickerSheet`
+- `SwipeCard` — pełnoekranowy TikTok-style: kreacja, scrim, top data bar, pasek akcji, brand info na dole; tap na markę/ArrowUpRight = deep dive
+- `FeedView` — split `md:hidden`/`hidden md:block`; `initialMode` i `initialOfferTypes` z onboardingu
+- `FeedGate` — sprawdza preferencje w localStorage, przekierowuje na `/onboarding` jeśli brak; aplikuje niche weighting
+- `ModeToggle`, `CoachMark`, `BottomNav` (ukryty na desktop)
 
-**Feed desktop (punkt 7 desktop):**
-- **`DesktopFeedView`** — orchestrator: `mode`, `view: 'grid'|'player'`, `selectedIdx`.
-- **`DesktopTopBar`** — logo + search placeholder + linki nawigacyjne (`usePathname`).
-- **`DesktopSidebar`** — w Grid = selector trybu; w Player = filmstrip miniatur z heat badge.
-- **`DesktopGrid`** — 4-kol. siatka `aspect-[9/12]`, hover scale + play overlay, amber ring na aktywnej.
-- **`DesktopPlayer`** — kreacja 9:16, skróty klawiaturowe `←/→` nawigacja, `S` zapisz, `Esc` grid.
-- **`DesktopDeepDive`** — prawy panel 280px: stats + CTA "Zapisz do boardu".
+**Feed — desktop:**
+- `DesktopFeedView` — orchestrator: `mode`, `view: 'grid'|'player'`, `selectedIdx`
+- `DesktopGrid` — 4-kol. siatka, hover play overlay, amber ring na aktywnej
+- `DesktopPlayer` — kreacja 9:16, skróty `←/→`, `S` zapisz, `Esc` grid
+- `DesktopSidebar`, `DesktopTopBar`, `DesktopDeepDive` (używa `BrandDeepDive`)
 
-**Boardy + zapis z feedu (punkty 8–9):**
-- **`lib/boards.ts`** — `useBoards()` z localStorage (`dropfeed_boards_v1`); `saveToLastBoard(adId)` zwraca nazwę boardu synchronicznie; `createBoard`, `saveToBoard`, `getBoardItems`, `getBoardItemCount`, `isAlreadySaved`.
-- **`components/boards/BoardCard`** — 2×2 miniatury kreacji + nazwa + liczba pozycji (design-reference 05).
-- **`components/boards/CreateBoardSheet`** — spring bottom sheet z inputem + przycisk "Utwórz".
-- **`components/boards/BoardPickerSheet`** — wybór boardu przy long-press; inline tworzenie nowego.
-- **`components/feed/SaveFeedback`** — serce 72px + toast "Zapisano · [nazwa]" (AnimatePresence).
-- **SwipeDeck (rozszerzony)** — swipe prawo: `saveToLastBoard` + `SaveFeedback`; przytrzymanie 450ms w save-zone → wibracja 40ms + `BoardPickerSheet`.
-- **`app/(app)/boards`** — 2-kolumnowa siatka z `+` w nagłówku i empty state.
-- **`app/(app)/boards/[id]`** — 3-kolumnowy grid zapisanych kreacji z heat badge.
-- **`app/(app)/discover`** — szkielet: search bar + trending pills + siatka nisz.
-- **`app/(app)/profile`** — szkielet: avatar + badge planu + lista opcji menu.
+**Deep-dive (profil marki):**
+- `components/deepdive/BrandDeepDive` — shared: nagłówek, IG followers, chipy (sklep/IG), oś skalowania (7 słupków, bursztyn = aktywne tygodnie), grid reklam marki 3-kol.
+- `components/deepdive/DeepDiveSheet` — mobile bottom sheet (spring, 88dvh, AnimatePresence); otwierany tapem na markę lub ikonę deep dive
+
+**Boardy:**
+- `lib/boards.ts` — `useBoards()` z localStorage (`dropfeed_boards_v1`); `saveToLastBoard`, `createBoard`, `saveToBoard`, `getBoardItems`, `getBoardItemCount`
+- `BoardCard` — 2×2 miniatura; `CreateBoardSheet` — spring sheet z inputem; `BoardPickerSheet` — wybór boardu + inline create
+- `SaveFeedback` — serce 72px + toast "Zapisano · [nazwa]" (AnimatePresence)
+- `/boards` — 2-kol. grid z `+` i empty state; `/boards/[id]` — 3-kol. grid zapisanych kreacji z heat badge
+
+**Onboarding:**
+- `lib/preferences.ts` — `IntentKey`, `UserPreferences`, `INTENT_CONFIG` (intent → feedMode + offerTypes), `ONBOARDING_NICHES` z 10 opcjami i mapowaniem na `Niche[]`, `loadPreferences`/`savePreferences` (localStorage `dropfeed_prefs_v1`), `resolveNiches()`
+- `app/onboarding/page.tsx` — krok 1: intencja (4 opcje, radio-style, amber); krok 2: 10 chipów nisz, multi-select; slide animacja między krokami; "pomiń" zapisuje bez nisz
+
+**Szkielety:**
+- `/discover` — search bar placeholder + trending pills + siatka nisz
+- `/profile` — avatar + badge planu + lista opcji
 
 ### Decyzje techniczne
 
 - **Tailwind v4** — `@theme inline` w CSS, brak `tailwind.config.ts`. `--color-*` → klasy `bg-*`/`text-*`/`border-*`.
-- **Responsive split** — `FeedView` renderuje oba widoki jednocześnie (`md:hidden` / `hidden md:block`); każdy ma własny stan. Brak SSR/useMediaQuery — czyste CSS.
-- **Desktop layout** — `flex flex-col h-full` → TopBar (shrink-0) + `flex flex-1 min-h-0`. `min-h-0` krytyczne dla flex overflow.
-- **Player kreacja** — `height: min(600px, calc(100vh-200px))` + `aspect-ratio: 9/16` — zapobiega wyjściu poza szerokość kontenera.
-- **Hover video** — `<video>` TYLKO gdy URL kończy się `.mp4/.webm/.mov`; dla mock (picsum) = `<img>` + overlay.
-- **`animate(motionValue, target, opts)`** — framer-motion v12 zwraca `AnimationPlaybackControlsWithThen` (awaitable).
-- **`saveToLastBoard` sync return** — czyta `store` snapshot z render-closure; NIE używa closure-mutation w setState updaterze (nie jest thread-safe w React 18+ concurrent).
-- **Długie przytrzymanie** — `holdTimerRef` + `clearTimeout` w `first`, w `last` i gdy `mx < 60`; timer nie restartuje aż do nowego gestu.
-- **Board detail params** — `use(params)` z React 19; Next.js 16 App Router przekazuje params jako Promise w client components.
-- **`ads` import w pages** — bezpośredni import z `@/lib/data/mock` TYLKO do resolucji thumbnail URL w boardach; feed nadal czyta przez `source.ts`.
+- **Responsive split** — `FeedView` renderuje oba widoki jednocześnie (`md:hidden`/`hidden md:block`); brak SSR/useMediaQuery — czyste CSS.
+- **Desktop layout** — `flex flex-col h-full` + `flex flex-1 min-h-0`. `min-h-0` krytyczne dla flex overflow.
+- **Player kreacja** — `height: min(600px, calc(100vh-200px))` + `aspect-ratio: 9/16`.
+- **Hover video** — `<video>` TYLKO gdy URL kończy się `.mp4/.webm/.mov`; picsum = `<img>` + overlay.
+- **`animate(motionValue, target, opts)`** — framer-motion v12: awaitable `AnimationPlaybackControlsWithThen`.
+- **`saveToLastBoard` sync return** — czyta `store` snapshot z render-closure; NIE closure-mutation w setState.
+- **Long-press** — `holdTimerRef` + `clearTimeout` w `first`, `last` i gdy `mx < 60`.
+- **Board detail params** — `use(params)` z React 19 (Next.js 16 App Router, params jako Promise).
+- **`ads` import w pages** — bezpośredni z `@/lib/data/mock` TYLKO do resolucji thumbnail URL; feed czyta przez `source.ts`.
+- **FeedGate + onboarding redirect** — klient sprawdza localStorage po montażu; serwer pre-fetches items, klient re-sortuje wg nisz.
+- **localStorage jako placeholder** — `useBoards` (`dropfeed_boards_v1`) i preferencje onboardingu (`dropfeed_prefs_v1`) to **świadomy placeholder na czas mocków**. W Etapie 3 przechodzą na Supabase per user. Nie wbudowywać logiki zakładającej localStorage na zawsze — klucze i struktury powinny być łatwe do wymiany.
+
+### Co jeszcze nie istnieje
+
+- Coach mark z objaśnieniem ikon górnego paska (ikony bez podpisów przy pierwszej karcie)
+- Pełne UX desktopu (brak testów cross-browser, brak finalizacji)
+- Cały Etap 1: Supabase schema + migracje, Apify scraper, enrichment Claude Haiku, Cloudflare R2 + transkodowanie wideo
 
 ### Następny krok
 
-Punkt 10 — deep-dive sheet na mobile (tap na kreację otwiera profil marki / szczegóły). Ewentualnie podłączenie Supabase + Apify (Etap 1 danych).
+Etap 1 — pipeline danych (Supabase, Apify, enrichment, R2). Szczegóły w sekcji "Drugie zadanie" poniżej.
 
 ## Stack (decyzje podjęte — nie zmieniać bez pytania)
 

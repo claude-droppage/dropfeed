@@ -69,7 +69,17 @@ APP (bottom nav: Feed · Boardy · Odkrywaj · Profil)
 ## 7. Kluczowe przepływy użytkownika
 
 **Pierwsze uruchomienie:**
-Splash → Logowanie (1 klik Google) → Onboarding (wybierz nisze: beauty, kuchnia, pet, fitness, gadżety, dom...) → od razu spersonalizowany feed. Cel: "aha" w pierwszych 10 sekundach.
+Splash → Logowanie (1 klik Google) → Onboarding dwukrokowy (max ~30 sekund) → od razu spersonalizowany feed. Cel: "aha" w pierwszych 10 sekundach.
+
+Onboarding — **krok 1** (jeden wybór, intencja):
+- Produktów do sprzedania (dropshipping) → tryb Produkty, filtr: physical
+- Pomysłów cyfrowych (apki, kursy, produkty cyfrowe, usługi) → tryb Produkty, filtr: digital+app+service+course
+- Inspiracji reklamowych (angle, hooki, kreacje) → tryb Inspiracje, bez filtra
+- Rozglądam się ogólnie → tryb Produkty, bez filtra
+
+Onboarding — **krok 2** (3-5 wyborów, nisze): beauty, zdrowie i fitness, dom i kuchnia, pet, gadżety tech, dziecko i mama, motoryzacja, outdoor i sport, biżuteria i akcesoria, biuro i organizacja.
+
+To podwaliny pod platformę "dla każdego" — nie tylko dropshipperów. Intencja ustawia punkt startowy feedu; user może go zmienić w każdej chwili jednym tapnięciem.
 
 **Codzienny loop (retencja):**
 Otwiera app → feed już dostrojony → swipe'uje → zapisuje ciekawe do boardu → na zainteresowaniu robi deep dive → wraca następnego dnia. Limit darmowych swipe'ów buduje głód i wraca jutro (albo upgrade).
@@ -141,6 +151,18 @@ Pełny model: reklama → produkt → sklep → IG. Relacje:
 ## 11. Personalizacja
 
 Na start bez ML. Swipe'y to sygnał: po ~50 swipe'ach wiadomo, które nisze user zapisuje, a które pomija — feed waży nisze w górę/dół tagowo. Proste, wystarczające, rozszerzalne później.
+
+### Zasada feedu — trzy poziomy sterowania (ważna logika, nie kosmetyka)
+
+Intencja i nisze sterują feedem na trzech poziomach:
+
+1. **Tryb feedu** — intencja ustawia domyślny tryb (Produkty lub Inspiracje). Tryb zmienia CO eksponujemy na karcie (dla Inspiracji akcentujemy angle/hook/format kreacji zamiast kategorii oferty), nie które reklamy się ładują.
+
+2. **Filtr kategorii oferty** — intencja ustawia domyślny filtr `offerType` (np. `physical` dla dropshippera). To **elastyczny punkt startowy, NIE klatka** — user zmienia filtr jednym tapnięciem w feedzie i wraca do pełnego katalogu kiedy chce.
+
+3. **Ważenie nisz** — wybrane nisze w onboardingu + sygnały swipe (save/skip) podbijają reklamy z preferowanych nisz wyżej w kolejce, ale ich nie wycinają. Mechanizm miękki: **częściej/rzadziej, nie tak/nie**. Inne nisze są zawsze dostępne — scroll wystarczy.
+
+**KRYTYCZNE:** Feed nigdy nie pokazuje 100% jednej kategorii — zawsze jest domieszka różnorodności. Za mocne zawężenie = nuda = utrata retencji (efekt TikTok: nawet jeśli lubisz gotowanie, co 10-20 filmów pojawia się coś innego). Onboarding to inteligentny punkt startowy, nie dożywotni kanał tematyczny.
 
 ## 12. Monetyzacja
 
