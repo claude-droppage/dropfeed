@@ -186,8 +186,9 @@ export default function SwipeDeck({ items, mode }: Props) {
 
   if (!item) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-bg-void">
-        <p className="text-text-lo text-sm">{pl.feed.end}</p>
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg-void gap-3">
+        <p className="text-text-mid text-base font-medium">{pl.feed.end}</p>
+        <p className="text-text-lo text-sm">Sprawdź jutro po nowe reklamy</p>
       </div>
     )
   }

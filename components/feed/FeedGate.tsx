@@ -19,17 +19,34 @@ export default function FeedGate({ serverItems }: Props) {
 
   useEffect(() => {
     const prefs = loadPreferences()
-    if (!prefs) {
+    if (!prefs || !prefs.intent || !prefs.feedMode) {
       router.replace('/onboarding')
       return
     }
-    // Apply niche weighting client-side (will become a Supabase query in Etap 1)
-    const niches = resolveNiches(prefs.niches)
-    setItems(niches.length ? getNicheWeightedItems(niches) : serverItems)
+    try {
+      const niches = resolveNiches(prefs.niches ?? [])
+      setItems(niches.length ? getNicheWeightedItems(niches) : serverItems)
+    } catch {
+      setItems(serverItems)
+    }
     setReady(true)
   }, [router, serverItems])
 
-  if (!ready) return null
+  if (!ready) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-bg-void">
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-1.5 h-1.5 rounded-full bg-text-lo animate-pulse"
+              style={{ animationDelay: `${i * 150}ms` }}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   const prefs = loadPreferences()!
   return (
