@@ -28,7 +28,7 @@ Szuka produktu, który "pójdzie". Chce widzieć: produkt, jak długo reklama dz
 ### Avatar docelowy (ekspansja, bez zmian w kodzie) — Każdy szukający pomysłów
 Twórcy, marketerzy, ludzie szukający pomysłu na biznes, founderzy badający strategie innych reklamodawców. Interesuje ich: co działa w reklamie teraz, jakie angle, jakie kategorie rosną — niezależnie czy to gadżet, apka czy kurs.
 
-> Decyzja produktowa: jeden mechanizm swipe'a, dwa tryby feedu przełączane u góry ekranu. Tryb "Produkty" akcentuje samą ofertę (co sprzedają, kategoria, sygnały skalowania). Tryb "Inspiracje" akcentuje kreację, angle i markę. Dane pod spodem te same, inny akcent. Dodatkowo filtr kategorii oferty: fizyczne / cyfrowe / aplikacje / usługi / kursy.
+> Decyzja produktowa: jeden mechanizm swipe'a, trzy zakładki feedu u góry ekranu. **Produkty** akcentuje samą ofertę (co sprzedają, kategoria, sygnały skalowania), **Inspiracje** akcentuje kreację, angle i markę, **Gorące** filtruje reklamy, które właśnie zaczęły skalować. Dane pod spodem te same, inny akcent; domyślny sort po heat_score. Dodatkowo filtr kategorii oferty: fizyczne / cyfrowe / aplikacje / usługi / kursy.
 
 ## 5. Zakres v1 (MVP)
 
@@ -59,7 +59,7 @@ AUTH
   Onboarding (wybór nisz)
 
 APP (bottom nav: Feed · Boardy · Odkrywaj · Profil)
-  Feed         główny ekran, swipe, przełącznik trybu Produkty/Inspiracje
+  Feed         główny ekran, swipe, zakładki Produkty/Inspiracje/Gorące
   Deep dive    (swipe w górę z karty) profil marki + jej reklamy + sklep + IG + oś skalowania
   Boardy       lista kolekcji → widok boardu (grid jak Pinterest)
   Odkrywaj     wyszukiwarka marek/nisz + ranking "najgorętsze teraz"
@@ -91,7 +91,7 @@ Po wyczerpaniu dziennego limitu lub przy próbie deep dive ponad limit → paywa
 
 Kreacja wypełnia **cały ekran**. Dwa równoprawne formaty: **wideo** (9:16, autoplay bez dźwięku, tap = dźwięk on/off) i **statyczna grafika** (jak post IG — bez timera, user sam przewija). Dane jako nakładki:
 
-- Sama góra: zakładki (Inspiracje / Produkty / Gorące)
+- Sama góra: zakładki (Produkty / Inspiracje / Gorące)
 - **Górny pasek danych** (pod zakładkami, jeden rząd, same ikony + liczby, bez opisów): pill Heat (bursztyn) · ikona kategorii oferty (pudełko=fizyczny, chmura=cyfrowy, telefon=aplikacja, czapka=kurs, klucz=usługa) · zegar + "47d" (wiek tej reklamy) · stos + "12" (aktywne reklamy marki) · ikona formatu (wideo/grafika)
 - Prawa krawędź: pasek akcji: zapisz do boardu, deep dive, **strona** (nie "sklep" — przy kursie/aplikacji "sklep" nie pasuje)
 - Lewy dół (minimalny): avatar + nazwa marki (tap = deep dive) + mały miętowy pill "skaluje" (tylko gdy marka aktywnie skaluje), pod spodem nazwa oferty
@@ -108,7 +108,7 @@ Kreacja wypełnia **cały ekran**. Dwa równoprawne formaty: **wideo** (9:16, au
 
 **Tryb Inspiracje** — ten sam ekran; pasek danych akcentuje angle/hook i format kreacji zamiast kategorii oferty.
 
-**Sortowanie feedu (drugi przełącznik):** "Gorące teraz" (świeże reklamy, które właśnie zaczęły skalować) vs "Sprawdzone winnery" (reklamy długo żyjące, najwyższy heat).
+**Trzy zakładki (jeden rząd u góry, `FeedMode = 'products' | 'inspirations' | 'hot'`):** **Produkty** — nacisk na ofertę i kategorię; **Inspiracje** — nacisk na angle/hook kreacji; **Gorące** — filtr reklam, które właśnie zaczęły skalować. **Domyślne sortowanie feedu: po `heat_score` malejąco** — sprawdzone winnery (reklamy długo żyjące, najwyższy heat) naturalnie lądują na górze. Nie ma osobnego drugiego przełącznika sortowania ani osobnej zakładki "sprawdzone winnery".
 
 **Platformy:** jedna aplikacja (PWA), dwa układy. Mobile (<768px) = pełnoekranowy feed. Desktop (≥768px) = **dwa widoki**: (1) **Grid** — domyślny, ściana miniatur jak Pinterest, najechanie myszką odtwarza wideo; (2) **Player** — klik w miniaturę otwiera kreację w pionie 9:16 na środku z panelem pełnych danych po prawej, nawigacja scrollem/strzałkami, skróty: S = zapisz, Esc = powrót do gridu. Wąski pasek nawigacji z lewej (jak TikTok web). Wzorzec wizualny: `design-reference.html`.
 
