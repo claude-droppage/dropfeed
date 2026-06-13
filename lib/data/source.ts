@@ -7,7 +7,7 @@
  */
 
 import { brands, products, ads } from './mock'
-import type { FeedItem, Brand, Product, Ad } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche } from '@/lib/types'
 
 export function getFeedItems(): FeedItem[] {
   return ads.map(ad => ({
@@ -15,6 +15,22 @@ export function getFeedItems(): FeedItem[] {
     brand: brands.find(b => b.id === ad.brandId)!,
     product: products.find(p => p.id === ad.productId),
   }))
+}
+
+/**
+ * Returns feed items sorted so preferred niches appear first.
+ * Items within each group retain original order (by heatScore from mock).
+ * When Supabase lands this becomes a weighted query.
+ */
+export function getNicheWeightedItems(preferredNiches: Niche[]): FeedItem[] {
+  const items = getFeedItems()
+  if (!preferredNiches.length) return items
+  const preferred = new Set<Niche>(preferredNiches)
+  return [...items].sort((a, b) => {
+    const aNiche = a.product?.niche ?? 'other'
+    const bNiche = b.product?.niche ?? 'other'
+    return (preferred.has(bNiche) ? 1 : 0) - (preferred.has(aNiche) ? 1 : 0)
+  })
 }
 
 export function getBrandById(brandId: string): Brand | undefined {

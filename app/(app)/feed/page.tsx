@@ -1,7 +1,7 @@
 import { getFeedItems } from '@/lib/data/source'
-import FeedView from '@/components/feed/FeedView'
+import FeedGate from '@/components/feed/FeedGate'
 
 export default function FeedPage() {
   const items = getFeedItems()
-  return <FeedView items={items} />
+  return <FeedGate serverItems={items} />
 }
