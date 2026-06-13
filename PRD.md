@@ -160,12 +160,23 @@ Stripe jako bramka. Paywall w Etapie 4.
 
 **Ścieżka natywna:** start jako PWA → walidacja → Capacitor → App Store + Google Play + natywne push.
 
+### 13.5 Hosting kreacji (decyzja: hosting u siebie na Cloudflare R2)
+
+Feed działa jak TikTok — wideo gra od razu podczas scrollowania, nie po kliknięciu.
+Dlatego kreacje hostujemy u siebie, nie linkujemy do wygasających URL-i Mety.
+
+- Storage: Cloudflare R2 (zero opłat egress — kluczowe przy wideo oglądanym masowo; $0.015/GB/mies storage). Nie S3 (egress zabija budżet przy wideo).
+- Przy zaciąganiu: wideo z Meta jest transkodowane i kompresowane do ~3-5 MB (9:16, bitrate pod telefon) PRZED zapisem do R2. Nie zapisujemy surowych oryginałów.
+- `thumb_url` (poster/pierwsza klatka) też w R2, jako plakat wideo zanim załaduje się strumień.
+- Koszt: faza startowa ~$0.12/mies, faza wzrostu (50k wideo) <$5/mies, skala <$10/mies.
+
 ## 14. Ryzyka i compliance (świadomie)
 
 - Scraping Ad Library = dane publiczne, ale: polityka prywatności z podstawą "uzasadniony interes", procedura usunięcia na żądanie.
 - Kreacje reklamowe — trzymać miniatury/embedy, nie pełne kopie; procedura takedown 48h.
 - Konstrukcja prawna: osobna działalność/spółka, nie pod istniejącym e-commerce.
 - Zależność od aktora Apify: warstwa pozyskiwania wymienialna (abstrakcja), drugi aktor w zapasie.
+- Hosting cudzych kreacji u siebie (jak Minea/WinningHunter): wymaga PRZED launchem procedury takedown (usunięcie na żądanie), osobnej spółki/działalności, polityki prywatności. Świadomie przyjęte ryzyko — standard w branży ad-spy.
 
 ## 15. Definicja sukcesu per etap
 

@@ -195,4 +195,13 @@ Motyw ciemny, warstwowa czerń (NIE płaska czerń z jednym neonem). Ciepły akc
 7. Ekran `/feed` — format PEŁNOEKRANOWY jak TikTok: kreacja (wideo 9:16 autoplay bez dźwięku LUB statyczna grafika) wypełnia ekran. Nakładki: zakładki Inspiracje/Produkty/Gorące na samej górze; górny pasek danych (same ikony+liczby): Heat pill (bursztyn) · ikona kategorii oferty · zegar+"47d" · stos+"12" · ikona formatu. Pasek akcji przy prawej krawędzi: zapisz / deep dive / strona. Lewy dół minimalny: avatar + marka + miętowy pill "skaluje" (warunkowy) + nazwa oferty. Pasek świeżości na dole. Gesty: góra/dół = nawigacja, prawo = zapisz, lewo = pomiń, tap na kreację = dźwięk. Coach mark przy pierwszej karcie. Desktop (≥768px): Grid (miniatury, hover odtwarza) i Player (kreacja 9:16 + panel danych). Wzorzec: design-reference.html.
 8. Bottom nav + puste ekrany Boardy/Odkrywaj/Profil (szkielety).
 
+## Drugie zadanie dla Claude Code (Etap 1 — pipeline danych)
+
+1. Supabase: schema z PRD sekcja 10, Row-Level Security, migracje przez `supabase/migrations/`.
+2. Apify scraper: Edge Function wywołująca aktora `curious_coder/facebook-ads-library-scraper`; wyniki do tabeli `raw_ads`; backup aktor `apify/facebook-ads-scraper`.
+3. Enrichment: Edge Function (Claude Haiku, batch) — klasyfikacja `offer_type`, `niche`, `angle`, `hook`; landing-page fetch → `confidence`; wynik trafia do tabeli `ads`.
+4. Pobieranie + transkodowanie kreacji: pobierz wideo/grafikę z Meta, skompresuj/ transkoduj wideo do ~3-5 MB (9:16, bitrate pod mobile), zapisz do Cloudflare R2, zapisz `video_url` (R2) i `thumb_url` (poster w R2). `source_media_url` (oryginalny link Meta) trzymaj tylko jako referencję/fallback, nie do odtwarzania w feedzie. Storage = R2 ze względu na zero egress.
+5. Heat score: `computeHeatScore()` wywołane po enrichmencie, wynik zapisany w kolumnie `heat_score`.
+6. `lib/data/source.ts`: podmień implementację na Supabase client — interfejs bez zmian, UI nic nie wie.
+
 @AGENTS.md
