@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Package, Cpu, Sparkles, Compass, Check, ArrowRight } from 'lucide-react'
 import {
   INTENT_CONFIG,
@@ -21,7 +20,6 @@ const INTENT_ICON: Record<IntentKey, React.ReactNode> = {
 }
 
 export default function OnboardingPage() {
-  const router = useRouter()
   const [step, setStep] = useState(0)
   const [intent, setIntent] = useState<IntentKey | null>(null)
   const [niches, setNiches] = useState<string[]>([])
@@ -37,7 +35,7 @@ export default function OnboardingPage() {
     const cfg = INTENT_CONFIG[intent]
     savePreferences({ intent, niches, feedMode: cfg.feedMode, offerTypes: cfg.offerTypes })
     document.cookie = ONBOARDED_COOKIE
-    router.replace('/feed')
+    window.location.replace('/feed')
   }
 
   return (
@@ -49,12 +47,18 @@ export default function OnboardingPage() {
           dropfeed<span className="text-heat">_</span>
         </p>
         <div className="flex gap-1.5 items-center">
-          <div className={`h-[3px] rounded-full transition-all duration-300 ${step === 0 ? 'w-5 bg-heat' : 'w-3 bg-heat/60'}`} />
-          <div className={`h-[3px] rounded-full transition-all duration-300 ${step === 1 ? 'w-5 bg-heat' : 'w-3 bg-line'}`} />
+          <div
+            className="h-[3px] rounded-full transition-all duration-300"
+            style={{ width: step === 0 ? 20 : 12, background: '#EF9F27' }}
+          />
+          <div
+            className="h-[3px] rounded-full transition-all duration-300"
+            style={{ width: step === 1 ? 20 : 12, background: step >= 1 ? '#EF9F27' : '#26262C' }}
+          />
         </div>
       </div>
 
-      {/* ── Content (scrollable) ────────────────────────────────── */}
+      {/* ── Content ─────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col px-6 pt-8 pb-0 overflow-y-auto">
 
         {step === 0 ? (
@@ -67,44 +71,51 @@ export default function OnboardingPage() {
             </p>
 
             <div className="flex flex-col gap-3">
-              {INTENT_ORDER.map((key) => {
-                const cfg = INTENT_CONFIG[key]
-                const active = intent === key
+              {INTENT_ORDER.map((intentKey) => {
+                const cfg = INTENT_CONFIG[intentKey]
+                const active = intent === intentKey
                 return (
                   <button
-                    key={key}
+                    key={intentKey}
                     type="button"
-                    onClick={() => setIntent(key)}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border text-left w-full transition-all duration-150 ${
-                      active
-                        ? 'bg-heat-deep border-heat/50'
-                        : 'bg-bg-surface border-line active:bg-bg-raised'
-                    }`}
+                    onClick={() => setIntent(intentKey)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 16,
+                      padding: 16,
+                      borderRadius: 16,
+                      border: `1.5px solid ${active ? '#EF9F27' : '#26262C'}`,
+                      background: active ? '#2A1400' : '#15151A',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
+                      transition: 'border-color 150ms, background 150ms',
+                    }}
                   >
-                    {/* icon */}
-                    <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                        active ? 'bg-heat/20 text-heat' : 'bg-bg-raised text-text-lo'
-                      }`}
-                    >
-                      {INTENT_ICON[key]}
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: active ? 'rgba(239,159,39,0.15)' : '#1C1C22',
+                      color: active ? '#EF9F27' : '#6E6E76',
+                    }}>
+                      {INTENT_ICON[intentKey]}
                     </div>
-
-                    {/* text */}
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold mb-0.5 ${active ? 'text-heat' : 'text-text-hi'}`}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? '#EF9F27' : '#F2F2F0', marginBottom: 2, lineHeight: 1.3 }}>
                         {cfg.label}
                       </p>
-                      <p className="text-xs text-text-lo leading-snug">{cfg.sub}</p>
+                      <p style={{ fontSize: 12, color: '#6E6E76', lineHeight: 1.4 }}>
+                        {cfg.sub}
+                      </p>
                     </div>
-
-                    {/* radio */}
-                    <div
-                      className={`w-5 h-5 rounded-full border shrink-0 flex items-center justify-center transition-all ${
-                        active ? 'bg-heat border-heat' : 'border-line'
-                      }`}
-                    >
-                      {active && <Check size={10} strokeWidth={3} className="text-bg-void" />}
+                    <div style={{
+                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                      border: `1.5px solid ${active ? '#EF9F27' : '#26262C'}`,
+                      background: active ? '#EF9F27' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {active && <Check size={10} strokeWidth={3} color="#2A1700" />}
                     </div>
                   </button>
                 )
@@ -128,11 +139,20 @@ export default function OnboardingPage() {
                     key={key}
                     type="button"
                     onClick={() => toggleNiche(key)}
-                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full border text-sm transition-all duration-150 ${
-                      active
-                        ? 'bg-heat-deep border-heat/50 text-heat font-medium'
-                        : 'bg-bg-surface border-line text-text-mid active:bg-bg-raised'
-                    }`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '10px 16px',
+                      borderRadius: 999,
+                      border: `1.5px solid ${active ? '#EF9F27' : '#26262C'}`,
+                      background: active ? '#2A1400' : '#15151A',
+                      color: active ? '#EF9F27' : '#9C9CA4',
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 400,
+                      cursor: 'pointer',
+                      transition: 'border-color 150ms, background 150ms, color 150ms',
+                    }}
                   >
                     {active && <Check size={11} strokeWidth={3} />}
                     {label}
@@ -143,18 +163,29 @@ export default function OnboardingPage() {
           </>
         )}
 
-        {/* spacer so content doesn't hide behind CTA */}
         <div className="shrink-0 h-32" />
       </div>
 
-      {/* ── CTA (sticky bottom) ─────────────────────────────────── */}
-      <div className="shrink-0 px-6 pb-10 pt-4 bg-gradient-to-t from-bg-void via-bg-void/95 to-transparent">
+      {/* ── CTA ─────────────────────────────────────────────────── */}
+      <div className="shrink-0 px-6 pb-10 pt-4" style={{ background: 'linear-gradient(to top, #0B0B0E 70%, transparent)' }}>
         {step === 0 ? (
           <button
             type="button"
             onClick={goNext}
             disabled={!intent}
-            className="w-full flex items-center justify-center gap-2 bg-heat text-[#2A1700] font-bold text-[15px] py-[15px] rounded-2xl disabled:opacity-25 transition-opacity active:scale-[.98]"
+            style={{
+              width: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              padding: '15px 0',
+              borderRadius: 16,
+              background: intent ? '#EF9F27' : '#EF9F2740',
+              color: '#2A1700',
+              fontSize: 15,
+              fontWeight: 700,
+              border: 'none',
+              cursor: intent ? 'pointer' : 'default',
+              transition: 'background 150ms',
+            }}
           >
             Dalej <ArrowRight size={18} />
           </button>
@@ -163,21 +194,31 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={finish}
-              className="w-full flex items-center justify-center gap-2 bg-heat text-[#2A1700] font-bold text-[15px] py-[15px] rounded-2xl active:scale-[.98] transition-transform"
+              style={{
+                width: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '15px 0',
+                borderRadius: 16,
+                background: '#EF9F27',
+                color: '#2A1700',
+                fontSize: 15,
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
               Zacznij przeglądać <ArrowRight size={18} />
             </button>
             <button
               type="button"
               onClick={finish}
-              className="w-full text-center text-text-lo text-xs py-1"
+              style={{ width: '100%', background: 'transparent', border: 'none', color: '#6E6E76', fontSize: 12, cursor: 'pointer', padding: '4px 0' }}
             >
               pomiń — wybiorę później
             </button>
           </div>
         )}
       </div>
-
     </div>
   )
 }
