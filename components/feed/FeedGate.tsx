@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import type { FeedItem } from '@/lib/types'
 import { loadPreferences, resolveNiches } from '@/lib/preferences'
 import { getNicheWeightedItems } from '@/lib/data/source'
@@ -13,14 +12,13 @@ interface Props {
 }
 
 export default function FeedGate({ serverItems }: Props) {
-  const router = useRouter()
   const [ready, setReady] = useState(false)
   const [items, setItems] = useState<FeedItem[]>(serverItems)
 
   useEffect(() => {
     const prefs = loadPreferences()
     if (!prefs || !prefs.intent || !prefs.feedMode) {
-      router.replace('/onboarding')
+      window.location.replace('/onboarding')
       return
     }
     try {
@@ -30,7 +28,8 @@ export default function FeedGate({ serverItems }: Props) {
       setItems(serverItems)
     }
     setReady(true)
-  }, [router, serverItems])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (!ready) {
     return (
