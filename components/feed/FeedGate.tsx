@@ -17,16 +17,15 @@ export default function FeedGate({ serverItems }: Props) {
 
   useEffect(() => {
     const prefs = loadPreferences()
-    if (!prefs || !prefs.intent || !prefs.feedMode) {
-      window.location.replace('/onboarding')
-      return
+    if (prefs?.intent && prefs?.feedMode) {
+      try {
+        const niches = resolveNiches(prefs.niches ?? [])
+        setItems(niches.length ? getNicheWeightedItems(niches) : serverItems)
+      } catch {
+        // use serverItems (already in state)
+      }
     }
-    try {
-      const niches = resolveNiches(prefs.niches ?? [])
-      setItems(niches.length ? getNicheWeightedItems(niches) : serverItems)
-    } catch {
-      setItems(serverItems)
-    }
+    // middleware guarantees user has been onboarded — always render
     setReady(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

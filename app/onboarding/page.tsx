@@ -1,15 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Check } from 'lucide-react'
 import {
   INTENT_CONFIG,
   ONBOARDING_NICHES,
+  loadPreferences,
   savePreferences,
   type IntentKey,
 } from '@/lib/preferences'
+
+const ONBOARDED_COOKIE = 'dropfeed_onboarded=1; path=/; max-age=31536000; SameSite=Strict'
 
 const INTENT_ORDER: IntentKey[] = ['physical', 'digital', 'inspirations', 'any']
 
@@ -32,6 +35,15 @@ export default function OnboardingPage() {
   const [intent, setIntent] = useState<IntentKey | null>(null)
   const [niches, setNiches] = useState<string[]>([])
 
+  // Migration: user has localStorage prefs but no cookie → set cookie and go to feed
+  useEffect(() => {
+    const prefs = loadPreferences()
+    if (prefs?.intent && prefs?.feedMode) {
+      document.cookie = ONBOARDED_COOKIE
+      window.location.replace('/feed')
+    }
+  }, [])
+
   const goNext = () => {
     setDir(1)
     setStep(1)
@@ -46,12 +58,8 @@ export default function OnboardingPage() {
   const finish = () => {
     if (!intent) return
     const cfg = INTENT_CONFIG[intent]
-    savePreferences({
-      intent,
-      niches,
-      feedMode: cfg.feedMode,
-      offerTypes: cfg.offerTypes,
-    })
+    savePreferences({ intent, niches, feedMode: cfg.feedMode, offerTypes: cfg.offerTypes })
+    document.cookie = ONBOARDED_COOKIE
     router.replace('/feed')
   }
 
