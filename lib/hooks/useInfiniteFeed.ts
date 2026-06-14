@@ -1,28 +1,29 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
-import type { FeedItem, OfferType } from '@/lib/types'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { FeedItem, OfferType, Niche } from '@/lib/types'
 import { FEED_PAGE_SIZE } from '@/lib/types'
 import { getFeedPage } from '@/lib/data/source'
 
 interface Args {
-  /** Strona 1 wstrzyknięta z serwera (lub [] gdy aktywny filtr offerType). */
-  initialItems: FeedItem[]
   offerTypes: OfferType[] | null
+  /** seed sesji — stały przez całe scrollowanie (deterministyczny porządek, bez duplikatów) */
+  seed: number
+  /** preferowane nisze z onboardingu (ważenie + różnorodność) */
+  preferredNiches: Niche[] | null
 }
 
 /**
- * Infinite scroll: trzyma narastającą listę FeedItem i doładowuje kolejne
- * partie po FEED_PAGE_SIZE. Bez „stron"/przycisków — UI woła loadMore() przy
- * zbliżaniu się do końca. Zastępuje wcześniejszy pełny fetch + re-sort.
+ * Infinite scroll: narastająca lista FeedItem, partie po FEED_PAGE_SIZE.
+ * Porządek deterministyczny z (seed, preferencje) — te same parametry przy każdym
+ * loadMore → kolejne strony to rozłączne wycinki (zero duplikatów). Strona 1
+ * ładowana na montażu.
  */
-export function useInfiniteFeed({ initialItems, offerTypes }: Args) {
-  const [items, setItems] = useState<FeedItem[]>(initialItems)
-  const [hasMore, setHasMore] = useState(
-    initialItems.length === 0 || initialItems.length >= FEED_PAGE_SIZE,
-  )
+export function useInfiniteFeed({ offerTypes, seed, preferredNiches }: Args) {
+  const [items, setItems] = useState<FeedItem[]>([])
+  const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
-  const offsetRef = useRef(initialItems.length)
+  const offsetRef = useRef(0)
   const loadingRef = useRef(false)
 
   const loadMore = useCallback(async () => {
@@ -34,6 +35,8 @@ export function useInfiniteFeed({ initialItems, offerTypes }: Args) {
         offset: offsetRef.current,
         limit: FEED_PAGE_SIZE,
         offerTypes,
+        seed,
+        preferredNiches,
       })
       offsetRef.current += next.length
       setItems((prev) => [...prev, ...next])
@@ -44,7 +47,15 @@ export function useInfiniteFeed({ initialItems, offerTypes }: Args) {
       loadingRef.current = false
       setLoading(false)
     }
-  }, [hasMore, offerTypes])
+  }, [hasMore, offerTypes, seed, preferredNiches])
+
+  // Strona 1 na montażu (seed/preferencje już ustalone w FeedView)
+  const started = useRef(false)
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+    loadMore()
+  }, [loadMore])
 
   return { items, loadMore, hasMore, loading }
 }

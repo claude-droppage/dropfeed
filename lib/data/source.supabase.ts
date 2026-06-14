@@ -9,7 +9,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS } from '@/lib/types'
+import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY } from '@/lib/types'
 import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
@@ -138,18 +138,22 @@ interface FeedRow extends AdRow {
  * nie chudła po stronie klienta). hasMore = czy strona przyszła pełna.
  */
 export async function getFeedPage(
-  { offset, limit, offerTypes }: FeedPageParams,
+  { offset, limit, offerTypes, seed, preferredNiches }: FeedPageParams,
 ): Promise<FeedPage> {
-  // RPC feed_page: limit FEED_PER_BRAND reklam na markę (różnorodność) + filtr
-  // is_active + minimalny staż; embedding marki/produktu po typie zwracanym (ads).
-  // RPC zwraca gotowy jsonb (ad + brand + product) w poprawnej kolejności —
-  // bez .select()/embeddingu, żeby PostgREST nie zgubił ORDER BY funkcji.
+  // RPC feed_page: limit/markę + przeplatanie + filtr is_active/staż/offerType +
+  // seed-jitter (rotacja, stabilna w sesji) + miękkie ważenie nisz + różnorodność.
+  // Zwraca gotowy jsonb (ad+brand+product) w kolejności — bez embeddingu PostgREST.
   const { data, error } = await supabase.rpc('feed_page', {
     p_offset: offset,
     p_limit: limit,
     p_per_brand: FEED_PER_BRAND,
     p_offer_types: offerTypes && offerTypes.length ? offerTypes : null,
     p_min_age_days: FEED_MIN_AGE_DAYS,
+    p_seed: seed ?? 0,
+    p_preferred_niches: preferredNiches && preferredNiches.length ? preferredNiches : null,
+    p_niche_weight: FEED_NICHE_WEIGHT,
+    p_jitter_amp: FEED_JITTER_AMP,
+    p_discovery_every: FEED_DISCOVERY_EVERY,
   })
 
   if (error) fail('getFeedPage', error.message)

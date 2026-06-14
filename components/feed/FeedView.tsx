@@ -1,28 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import type { FeedItem, FeedMode, OfferType } from '@/lib/types'
+import type { FeedMode, OfferType, Niche } from '@/lib/types'
 import { useInfiniteFeed } from '@/lib/hooks/useInfiniteFeed'
 import ModeToggle from './ModeToggle'
 import SwipeDeck from './SwipeDeck'
 import DesktopFeedView from './desktop/DesktopFeedView'
 
 interface Props {
-  /** Strona 1 z serwera (pobrana bez filtra offerType) */
-  serverItems: FeedItem[]
   initialMode?: FeedMode
   initialOfferTypes?: OfferType[] | null
+  initialNiches?: Niche[]
 }
 
-export default function FeedView({ serverItems, initialMode = 'products', initialOfferTypes }: Props) {
+export default function FeedView({ initialMode = 'products', initialOfferTypes, initialNiches }: Props) {
   const [mode, setMode] = useState<FeedMode>(initialMode)
   const offerTypes = initialOfferTypes && initialOfferTypes.length ? initialOfferTypes : null
+  const preferredNiches = initialNiches && initialNiches.length ? initialNiches : null
+  // seed sesji — raz na montaż; stały przez całe scrollowanie (brak duplikatów)
+  const [seed] = useState(() => Math.floor(Math.random() * 2_000_000_000))
 
-  // Gdy aktywny filtr offerType, strona 1 z serwera (bez filtra) jest nieprzydatna
-  // → startujemy z pustej listy, hook dociąga przefiltrowaną stronę 1. Bez filtra
-  // używamy strony serwerowej (brak podwójnego fetcha).
-  const [initialItems] = useState<FeedItem[]>(offerTypes ? [] : serverItems)
-  const { items, loadMore, hasMore } = useInfiniteFeed({ initialItems, offerTypes })
+  const { items, loadMore, hasMore } = useInfiniteFeed({ offerTypes, seed, preferredNiches })
 
   return (
     <div className="h-full">

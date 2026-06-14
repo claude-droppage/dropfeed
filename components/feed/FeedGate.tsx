@@ -1,16 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { FeedItem } from '@/lib/types'
-import { loadPreferences } from '@/lib/preferences'
+import { loadPreferences, resolveNiches } from '@/lib/preferences'
 import FeedView from './FeedView'
 
-interface Props {
-  /** Strona 1 pobrana server-side; kolejne doładowuje infinite scroll w FeedView */
-  serverItems: FeedItem[]
-}
-
-export default function FeedGate({ serverItems }: Props) {
+export default function FeedGate() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -38,9 +32,9 @@ export default function FeedGate({ serverItems }: Props) {
   const prefs = loadPreferences()
   return (
     <FeedView
-      serverItems={serverItems}
       initialMode={prefs?.feedMode ?? 'products'}
       initialOfferTypes={prefs?.offerTypes ?? null}
+      initialNiches={prefs ? resolveNiches(prefs.niches ?? []) : []}
     />
   )
 }

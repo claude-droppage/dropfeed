@@ -114,11 +114,23 @@ export const FEED_PER_BRAND = 10
  *  sprawdzone winnery (staż = sygnał, że sprzedają). FAZA B: 7. */
 export const FEED_MIN_AGE_DAYS = 7
 
+// ── Logika feedu (PRD §11) — wszystko strojalne ──────────────────────────
+/** Bonus heat-equivalent dla reklam z preferowanych nisz (miękkie ważenie). */
+export const FEED_NICHE_WEIGHT = 8
+/** Amplituda jittera z seeda (umiarkowana rotacja kolejności między wejściami). */
+export const FEED_JITTER_AMP = 12
+/** Co ile pozycji wstrzyknąć reklamę spoza preferowanych nisz (odkrycie). */
+export const FEED_DISCOVERY_EVERY = 10
+
 export interface FeedPageParams {
   offset: number
   limit: number
   /** filtr kategorii oferty z onboardingu; null/[] = bez filtra */
   offerTypes?: OfferType[] | null
+  /** seed sesji — stała rotacja w obrębie jednego scrollowania (bez duplikatów) */
+  seed?: number
+  /** preferowane nisze z onboardingu (miękkie ważenie + różnorodność) */
+  preferredNiches?: Niche[] | null
 }
 
 export interface FeedPage {
