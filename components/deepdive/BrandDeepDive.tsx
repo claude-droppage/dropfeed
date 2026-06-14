@@ -1,142 +1,107 @@
 'use client'
 
 import Image from 'next/image'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Clock, Layers, Play, ImageIcon } from 'lucide-react'
 import type { Brand, Ad } from '@/lib/types'
 
-function formatFollowers(n: number): string {
+function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.', ',')}k`
   return String(n)
 }
 
-function generateScalingBars(brandAds: Ad[]): { pct: number; hot: boolean }[] {
-  const maxHeat = Math.max(...brandAds.map((a) => a.heatScore), 0)
-  const scalingSince = brandAds.find((a) => a.scalingSince !== undefined)?.scalingSince
-  const scalingWeeks =
-    scalingSince !== undefined ? Math.max(1, Math.ceil(scalingSince / 7)) : 0
-  const s = Math.min(1, maxHeat / 100)
+function platformLabel(p: string): string {
+  const map: Record<string, string> = { FACEBOOK: 'Facebook', INSTAGRAM: 'Instagram', AUDIENCE_NETWORK: 'Audience Network', MESSENGER: 'Messenger', THREADS: 'Threads' }
+  return map[p] ?? p.charAt(0) + p.slice(1).toLowerCase()
+}
 
-  // Ramp pattern that peaks at current heat level — deterministic, no randomness
-  const raw = [
-    0.18,
-    0.28,
-    0.22,
-    Math.max(0.2, 0.4 * s + 0.1),
-    Math.max(0.28, 0.55 * s + 0.15),
-    Math.max(0.4, 0.8 * s + 0.1),
-    Math.max(0.5, s),
-  ]
-  return raw.map((pct, i) => ({
-    pct: Math.min(1, pct),
-    hot: scalingWeeks > 0 && i >= 7 - scalingWeeks,
-  }))
+function daysActive(startDate: string): number {
+  const ms = Date.now() - new Date(startDate).getTime()
+  return Math.max(0, Math.floor(ms / 86_400_000))
 }
 
 interface Props {
   brand: Brand
-  brandAds: Ad[]
-  onSelectAd?: (ad: Ad) => void
+  /** konkretna oglądana reklama — deep dive jest ad-centryczny */
+  ad: Ad
+  /** liczba aktywnych reklam marki (sam COUNT) */
+  brandAdCount: number
 }
 
-export default function BrandDeepDive({ brand, brandAds, onSelectAd }: Props) {
-  const sorted = [...brandAds].sort((a, b) => b.heatScore - a.heatScore)
-  const bars = generateScalingBars(brandAds)
-  const hasScaling = brandAds.some((a) => a.scalingSince !== undefined)
+export default function BrandDeepDive({ brand, ad, brandAdCount }: Props) {
+  const adLibraryUrl = brand.fbPageId
+    ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&view_all_page_id=${brand.fbPageId}`
+    : null
+  const platforms = ad.platforms ?? []
+  const stat = 'flex items-center justify-between text-[13px] py-2 border-b border-line last:border-0'
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Brand header */}
+      {/* Brand header — logo (fallback inicjały) */}
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-full bg-bg-raised border border-line flex items-center justify-center text-[13px] font-medium text-profit shrink-0">
-          {brand.avatarInitials}
+        <div className="w-11 h-11 rounded-full bg-bg-raised border border-line overflow-hidden flex items-center justify-center text-[13px] font-medium text-profit shrink-0">
+          {brand.logoUrl ? (
+            <Image src={brand.logoUrl} alt="" width={44} height={44} className="w-full h-full object-cover" />
+          ) : (
+            brand.avatarInitials
+          )}
         </div>
         <div className="min-w-0">
-          <p className="text-text-hi font-medium text-[15px] leading-tight truncate">
-            {brand.name}
-          </p>
+          <p className="text-text-hi font-medium text-[15px] leading-tight truncate">{brand.name}</p>
           <p className="text-text-lo text-xs mt-0.5">
-            {brand.igFollowers
-              ? `IG ${formatFollowers(brand.igFollowers)} obserwujących · `
-              : ''}
-            {brandAds.length} aktywnych reklam
+            {brand.igFollowers ? `${formatCount(brand.igFollowers)} polubień · ` : ''}
+            {brandAdCount} aktywnych reklam
           </p>
         </div>
       </div>
 
-      {/* Link chips */}
+      {/* Linki: sklep + FB Ad Library */}
       <div className="flex gap-2 flex-wrap">
         {brand.storeUrl && (
-          <a
-            href={brand.storeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-text-mid bg-bg-raised border border-line rounded-full px-3 py-1.5 hover:border-line/60 transition-colors"
-          >
+          <a href={brand.storeUrl} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-text-mid bg-bg-raised border border-line rounded-full px-3 py-1.5 hover:border-line/60 transition-colors">
             sklep <ExternalLink size={11} />
           </a>
         )}
-        {brand.igHandle && (
-          <a
-            href={`https://instagram.com/${brand.igHandle}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-text-mid bg-bg-raised border border-line rounded-full px-3 py-1.5 hover:border-line/60 transition-colors"
-          >
-            instagram <ExternalLink size={11} />
+        {adLibraryUrl && (
+          <a href={adLibraryUrl} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-text-mid bg-bg-raised border border-line rounded-full px-3 py-1.5 hover:border-line/60 transition-colors">
+            reklamy w FB Ad Library <ExternalLink size={11} />
           </a>
         )}
       </div>
 
-      {/* Scaling chart */}
-      <div className="bg-bg-surface border border-line rounded-2xl p-4">
-        <p className="text-xs font-medium text-text-mid mb-3">
-          Oś skalowania — nowe warianty / tydzień
-        </p>
-        <div className="flex items-end gap-[5px] h-14">
-          {bars.map((bar, i) => (
-            <div
-              key={i}
-              className={`flex-1 rounded-t-[3px] ${bar.hot ? 'bg-heat' : 'bg-line'}`}
-              style={{ height: `${Math.round(bar.pct * 100)}%` }}
-            />
-          ))}
+      {/* Dane TEJ reklamy */}
+      <div className="bg-bg-surface border border-line rounded-2xl px-4 py-1">
+        <div className={stat}>
+          <span className="text-text-lo flex items-center gap-1.5"><Clock size={13} /> aktywna od</span>
+          <span className="text-text-hi font-mono">{daysActive(ad.startDate)} dni</span>
         </div>
-        <p className="text-[10px] text-text-lo mt-2">
-          ostatnie 7 tygodni{hasScaling ? ' · bursztyn = skalowanie' : ''}
-        </p>
+        <div className={stat}>
+          <span className="text-text-lo">start</span>
+          <span className="text-text-hi font-mono">{ad.startDate}</span>
+        </div>
+        <div className={stat}>
+          <span className="text-text-lo flex items-center gap-1.5">
+            {ad.format === 'video' ? <Play size={13} /> : <ImageIcon size={13} />} format
+          </span>
+          <span className="text-text-hi">{ad.format === 'video' ? 'wideo' : 'obraz'}</span>
+        </div>
+        {platforms.length > 0 && (
+          <div className={stat}>
+            <span className="text-text-lo">platformy</span>
+            <span className="text-text-hi">{platforms.map(platformLabel).join(', ')}</span>
+          </div>
+        )}
+        <div className={stat}>
+          <span className="text-text-lo flex items-center gap-1.5"><Layers size={13} /> warianty kreacji</span>
+          <span className="text-text-hi font-mono">{ad.variantsCount ?? 1}</span>
+        </div>
       </div>
 
-      {/* Ad grid */}
+      {/* Oś skalowania — schowana (FAZA B doda realne dane historyczne) */}
       <div className="bg-bg-surface border border-line rounded-2xl p-4">
-        <p className="text-xs font-medium text-text-mid mb-3">
-          Aktywne reklamy tej marki ({brandAds.length})
-        </p>
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          {sorted.map((ad) => (
-            <button
-              key={ad.id}
-              onClick={() => onSelectAd?.(ad)}
-              className="relative bg-bg-raised rounded-xl overflow-hidden"
-              style={{ aspectRatio: '9/14' }}
-              aria-label={ad.hook ?? ad.id}
-            >
-              <Image
-                src={ad.creativeUrl}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="80px"
-                unoptimized
-              />
-              {/* Heat badge */}
-              <div className="absolute top-1.5 left-1.5 bg-heat-deep rounded-full px-1.5 py-0.5">
-                <span className="text-[9px] font-mono text-heat font-medium">
-                  {Math.round(ad.heatScore)}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
+        <p className="text-xs font-medium text-text-mid mb-1">Oś skalowania</p>
+        <p className="text-[11px] text-text-lo">dane historyczne w przygotowaniu</p>
       </div>
     </div>
   )

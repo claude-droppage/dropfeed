@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, useMotionValue, animate, AnimatePresence } from 'framer-motion'
 import { useDrag } from '@use-gesture/react'
-import type { FeedItem, FeedMode, Brand, Ad } from '@/lib/types'
+import type { FeedItem, FeedMode } from '@/lib/types'
 import SwipeCard from './SwipeCard'
 import FeedMediaPreloader from './FeedMediaPreloader'
 import CoachMark from './CoachMark'
@@ -31,7 +31,7 @@ export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
   const [coached, setCoached] = useState(false)
   const [saveFeedback, setSaveFeedback] = useState<{ boardName: string } | null>(null)
   const [showBoardPicker, setShowBoardPicker] = useState(false)
-  const [deepDiveBrand, setDeepDiveBrand] = useState<Brand | null>(null)
+  const [deepDiveItem, setDeepDiveItem] = useState<FeedItem | null>(null)
 
   const transitioning = useRef(false)
   const gestureDir = useRef<'v' | 'h' | null>(null)
@@ -214,7 +214,7 @@ export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
           onSave={() => runTransition('save')}
           onSkip={() => runTransition('skip')}
           onToggleMute={() => setIsMuted((m) => !m)}
-          onDeepDive={() => setDeepDiveBrand(item.brand)}
+          onDeepDive={() => setDeepDiveItem(item)}
         />
       </motion.div>
 
@@ -233,14 +233,7 @@ export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
         )}
       </AnimatePresence>
 
-      <DeepDiveSheet
-        brand={deepDiveBrand}
-        onSelectAd={(ad: Ad) => {
-          const idx = items.findIndex((it) => it.ad.id === ad.id)
-          if (idx >= 0) setIndex(idx)
-        }}
-        onClose={() => setDeepDiveBrand(null)}
-      />
+      <DeepDiveSheet item={deepDiveItem} onClose={() => setDeepDiveItem(null)} />
 
       {showBoardPicker && (
         <BoardPickerSheet

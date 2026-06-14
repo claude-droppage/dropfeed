@@ -2,33 +2,26 @@
 
 import { useEffect, useState } from 'react'
 import { Heart } from 'lucide-react'
-import type { FeedItem, Ad } from '@/lib/types'
-import { getAdsByBrand } from '@/lib/data/source'
+import type { FeedItem } from '@/lib/types'
+import { getBrandActiveAdCount } from '@/lib/data/source'
 import BrandDeepDive from '@/components/deepdive/BrandDeepDive'
 
 interface Props {
   item: FeedItem | null
   onSave?: () => void
-  onSelectAd?: (ad: Ad) => void
 }
 
-export default function DesktopDeepDive({ item, onSave, onSelectAd }: Props) {
+export default function DesktopDeepDive({ item, onSave }: Props) {
   const brandId = item?.brand.id ?? null
-  const [brandAds, setBrandAds] = useState<Ad[]>([])
+  const [count, setCount] = useState(0)
 
   useEffect(() => {
     if (!brandId) return
     let cancelled = false
-    getAdsByBrand(brandId)
-      .then((ads) => {
-        if (!cancelled) setBrandAds(ads)
-      })
-      .catch(() => {
-        if (!cancelled) setBrandAds([])
-      })
-    return () => {
-      cancelled = true
-    }
+    getBrandActiveAdCount(brandId)
+      .then((c) => { if (!cancelled) setCount(c) })
+      .catch(() => { if (!cancelled) setCount(0) })
+    return () => { cancelled = true }
   }, [brandId])
 
   if (!item) {
@@ -41,16 +34,12 @@ export default function DesktopDeepDive({ item, onSave, onSelectAd }: Props) {
     )
   }
 
-  const { brand } = item
-
   return (
     <aside className="w-[280px] shrink-0 border-l border-line bg-bg-surface flex flex-col overflow-hidden">
-      {/* Scrollable deep-dive content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <BrandDeepDive brand={brand} brandAds={brandAds} onSelectAd={onSelectAd} />
+        <BrandDeepDive brand={item.brand} ad={item.ad} brandAdCount={count} />
       </div>
 
-      {/* Save CTA */}
       <div className="p-4 border-t border-line shrink-0">
         <button
           onClick={onSave}

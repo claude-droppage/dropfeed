@@ -3,37 +3,30 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
-import type { Brand, Ad } from '@/lib/types'
-import { getAdsByBrand } from '@/lib/data/source'
+import type { FeedItem } from '@/lib/types'
+import { getBrandActiveAdCount } from '@/lib/data/source'
 import BrandDeepDive from './BrandDeepDive'
 
 interface Props {
-  brand: Brand | null
-  onSelectAd: (ad: Ad) => void
+  item: FeedItem | null
   onClose: () => void
 }
 
-export default function DeepDiveSheet({ brand, onSelectAd, onClose }: Props) {
-  const [brandAds, setBrandAds] = useState<Ad[]>([])
+export default function DeepDiveSheet({ item, onClose }: Props) {
+  const [count, setCount] = useState(0)
 
   useEffect(() => {
-    if (!brand) return
+    if (!item) return
     let cancelled = false
-    getAdsByBrand(brand.id)
-      .then((ads) => {
-        if (!cancelled) setBrandAds(ads)
-      })
-      .catch(() => {
-        if (!cancelled) setBrandAds([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [brand])
+    getBrandActiveAdCount(item.brand.id)
+      .then((c) => { if (!cancelled) setCount(c) })
+      .catch(() => { if (!cancelled) setCount(0) })
+    return () => { cancelled = true }
+  }, [item])
 
   return (
     <AnimatePresence>
-      {brand && (
+      {item && (
         <motion.div
           key="dd-sheet"
           className="absolute inset-0 z-40 flex flex-col justify-end"
@@ -42,10 +35,8 @@ export default function DeepDiveSheet({ brand, onSelectAd, onClose }: Props) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
         >
-          {/* Backdrop */}
           <motion.div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
-          {/* Sheet */}
           <motion.div
             className="relative bg-bg-void border-t border-line rounded-t-3xl flex flex-col"
             style={{ maxHeight: '88dvh' }}
@@ -54,28 +45,15 @@ export default function DeepDiveSheet({ brand, onSelectAd, onClose }: Props) {
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 36 }}
           >
-            {/* Handle row */}
             <div className="relative flex items-center justify-center px-5 pt-4 pb-2 shrink-0">
               <div className="w-10 h-1 bg-line rounded-full" />
-              <button
-                onClick={onClose}
-                className="absolute right-4 top-3.5 p-1 text-text-lo"
-                aria-label="Zamknij"
-              >
+              <button onClick={onClose} className="absolute right-4 top-3.5 p-1 text-text-lo" aria-label="Zamknij">
                 <X size={18} />
               </button>
             </div>
 
-            {/* Scrollable content */}
             <div className="overflow-y-auto flex-1 px-4 pb-10 pt-2">
-              <BrandDeepDive
-                brand={brand}
-                brandAds={brandAds}
-                onSelectAd={(ad) => {
-                  onClose()
-                  onSelectAd(ad)
-                }}
-              />
+              <BrandDeepDive brand={item.brand} ad={item.ad} brandAdCount={count} />
             </div>
           </motion.div>
         </motion.div>

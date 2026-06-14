@@ -160,9 +160,13 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
         onClick={(e) => { e.stopPropagation(); onDeepDive() }}
       >
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          {/* Avatar */}
-          <div className="w-7 h-7 rounded-full bg-[rgba(38,38,44,0.95)] flex items-center justify-center text-[10px] font-medium text-profit shrink-0">
-            {brand.avatarInitials}
+          {/* Avatar — logo marki gdy jest, inaczej inicjały */}
+          <div className="w-7 h-7 rounded-full bg-[rgba(38,38,44,0.95)] overflow-hidden flex items-center justify-center text-[10px] font-medium text-profit shrink-0">
+            {brand.logoUrl ? (
+              <Image src={brand.logoUrl} alt="" width={28} height={28} className="w-full h-full object-cover" />
+            ) : (
+              brand.avatarInitials
+            )}
           </div>
           <span className="text-text-hi text-[13px] font-medium leading-none">
             {brand.name}
