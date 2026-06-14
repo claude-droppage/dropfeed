@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import type { FeedItem } from '@/lib/types'
-import { getBrandActiveAdCount } from '@/lib/data/source'
+import { getBrandActiveAdCount, getBrandSnapshots } from '@/lib/data/source'
 import BrandDeepDive from './BrandDeepDive'
 
 interface Props {
@@ -14,13 +14,14 @@ interface Props {
 
 export default function DeepDiveSheet({ item, onClose }: Props) {
   const [count, setCount] = useState(0)
+  const [snapshots, setSnapshots] = useState<{ day: string; count: number }[]>([])
 
   useEffect(() => {
     if (!item) return
     let cancelled = false
-    getBrandActiveAdCount(item.brand.id)
-      .then((c) => { if (!cancelled) setCount(c) })
-      .catch(() => { if (!cancelled) setCount(0) })
+    Promise.all([getBrandActiveAdCount(item.brand.id), getBrandSnapshots(item.brand.id)])
+      .then(([c, s]) => { if (!cancelled) { setCount(c); setSnapshots(s) } })
+      .catch(() => { if (!cancelled) { setCount(0); setSnapshots([]) } })
     return () => { cancelled = true }
   }, [item])
 
@@ -53,7 +54,7 @@ export default function DeepDiveSheet({ item, onClose }: Props) {
             </div>
 
             <div className="overflow-y-auto flex-1 px-4 pb-10 pt-2">
-              <BrandDeepDive brand={item.brand} ad={item.ad} brandAdCount={count} />
+              <BrandDeepDive brand={item.brand} ad={item.ad} brandAdCount={count} snapshots={snapshots} />
             </div>
           </motion.div>
         </motion.div>

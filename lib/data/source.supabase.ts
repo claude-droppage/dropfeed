@@ -162,6 +162,17 @@ export async function getFeedPage(
   return { items, hasMore: items.length === limit }
 }
 
+/** Snapshoty osi skalowania (liczba aktywnych reklam marki w czasie). */
+export async function getBrandSnapshots(brandId: string): Promise<{ day: string; count: number }[]> {
+  const { data, error } = await supabase
+    .from('brand_daily_snapshot')
+    .select('day, active_ads_count')
+    .eq('brand_id', brandId)
+    .order('day', { ascending: true })
+  if (error) fail('getBrandSnapshots', error.message)
+  return (data as { day: string; active_ads_count: number }[]).map((r) => ({ day: r.day, count: r.active_ads_count }))
+}
+
 /** Liczba aktywnych reklam marki — sam COUNT, bez pobierania wierszy (deep dive). */
 export async function getBrandActiveAdCount(brandId: string): Promise<number> {
   const { count, error } = await supabase

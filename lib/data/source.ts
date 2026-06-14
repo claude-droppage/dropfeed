@@ -17,6 +17,7 @@ const impl = useMock ? mock : supabase
 
 export const getFeedPage = impl.getFeedPage
 export const getBrandActiveAdCount = impl.getBrandActiveAdCount
+export const getBrandSnapshots = impl.getBrandSnapshots
 export const getBrandById = impl.getBrandById
 export const getAdsByBrand = impl.getAdsByBrand
 export const getProductById = impl.getProductById

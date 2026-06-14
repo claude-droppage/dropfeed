@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Heart } from 'lucide-react'
 import type { FeedItem } from '@/lib/types'
-import { getBrandActiveAdCount } from '@/lib/data/source'
+import { getBrandActiveAdCount, getBrandSnapshots } from '@/lib/data/source'
 import BrandDeepDive from '@/components/deepdive/BrandDeepDive'
 
 interface Props {
@@ -14,13 +14,14 @@ interface Props {
 export default function DesktopDeepDive({ item, onSave }: Props) {
   const brandId = item?.brand.id ?? null
   const [count, setCount] = useState(0)
+  const [snapshots, setSnapshots] = useState<{ day: string; count: number }[]>([])
 
   useEffect(() => {
     if (!brandId) return
     let cancelled = false
-    getBrandActiveAdCount(brandId)
-      .then((c) => { if (!cancelled) setCount(c) })
-      .catch(() => { if (!cancelled) setCount(0) })
+    Promise.all([getBrandActiveAdCount(brandId), getBrandSnapshots(brandId)])
+      .then(([c, s]) => { if (!cancelled) { setCount(c); setSnapshots(s) } })
+      .catch(() => { if (!cancelled) { setCount(0); setSnapshots([]) } })
     return () => { cancelled = true }
   }, [brandId])
 
@@ -37,7 +38,7 @@ export default function DesktopDeepDive({ item, onSave }: Props) {
   return (
     <aside className="w-[280px] shrink-0 border-l border-line bg-bg-surface flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        <BrandDeepDive brand={item.brand} ad={item.ad} brandAdCount={count} />
+        <BrandDeepDive brand={item.brand} ad={item.ad} brandAdCount={count} snapshots={snapshots} />
       </div>
 
       <div className="p-4 border-t border-line shrink-0">

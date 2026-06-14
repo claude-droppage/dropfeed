@@ -30,6 +30,10 @@ export async function getBrandActiveAdCount(brandId: string): Promise<number> {
   return ads.filter((a) => a.brandId === brandId).length
 }
 
+export async function getBrandSnapshots(_brandId: string): Promise<{ day: string; count: number }[]> {
+  return []
+}
+
 export async function getBrandById(brandId: string): Promise<Brand | undefined> {
   return brands.find((b) => b.id === brandId)
 }

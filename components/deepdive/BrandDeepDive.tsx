@@ -23,16 +23,21 @@ interface Props {
   brand: Brand
   /** konkretna oglądana reklama — deep dive jest ad-centryczny */
   ad: Ad
-  /** liczba aktywnych reklam marki (sam COUNT) */
+  /** liczba aktywnych reklam marki (COUNT z naszej bazy; fallback gdy brak snapshotu) */
   brandAdCount: number
+  /** snapshoty osi skalowania (liczba aktywnych reklam w czasie) */
+  snapshots?: { day: string; count: number }[]
 }
 
-export default function BrandDeepDive({ brand, ad, brandAdCount }: Props) {
+export default function BrandDeepDive({ brand, ad, brandAdCount, snapshots = [] }: Props) {
   const adLibraryUrl = brand.fbPageId
     ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&view_all_page_id=${brand.fbPageId}`
     : null
   const platforms = ad.platforms ?? []
   const stat = 'flex items-center justify-between text-[13px] py-2 border-b border-line last:border-0'
+  // prawdziwa liczba aktywnych reklam marki = ostatni snapshot (z FB), inaczej count z bazy
+  const activeCount = snapshots.length ? snapshots[snapshots.length - 1].count : brandAdCount
+  const maxSnap = Math.max(1, ...snapshots.map((s) => s.count))
 
   return (
     <div className="flex flex-col gap-4">
@@ -49,7 +54,7 @@ export default function BrandDeepDive({ brand, ad, brandAdCount }: Props) {
           <p className="text-text-hi font-medium text-[15px] leading-tight truncate">{brand.name}</p>
           <p className="text-text-lo text-xs mt-0.5">
             {brand.igFollowers ? `${formatCount(brand.igFollowers)} polubień · ` : ''}
-            {brandAdCount} aktywnych reklam
+            {activeCount} aktywnych reklam
           </p>
         </div>
       </div>
@@ -98,10 +103,26 @@ export default function BrandDeepDive({ brand, ad, brandAdCount }: Props) {
         </div>
       </div>
 
-      {/* Oś skalowania — schowana (FAZA B doda realne dane historyczne) */}
+      {/* Oś skalowania — realne snapshoty (gdy ≥2); inaczej info o zbieraniu danych */}
       <div className="bg-bg-surface border border-line rounded-2xl p-4">
-        <p className="text-xs font-medium text-text-mid mb-1">Oś skalowania</p>
-        <p className="text-[11px] text-text-lo">dane historyczne w przygotowaniu</p>
+        <p className="text-xs font-medium text-text-mid mb-3">Oś skalowania — aktywne reklamy marki</p>
+        {snapshots.length >= 2 ? (
+          <>
+            <div className="flex items-end gap-[5px] h-14">
+              {snapshots.map((s, i) => (
+                <div
+                  key={s.day}
+                  className={`flex-1 rounded-t-[3px] ${i === snapshots.length - 1 ? 'bg-heat' : 'bg-line'}`}
+                  style={{ height: `${Math.max(6, Math.round((s.count / maxSnap) * 100))}%` }}
+                  title={`${s.day}: ${s.count}`}
+                />
+              ))}
+            </div>
+            <p className="text-[10px] text-text-lo mt-2">snapshoty co 2 tygodnie · bursztyn = teraz</p>
+          </>
+        ) : (
+          <p className="text-[11px] text-text-lo">dane historyczne w przygotowaniu (zbieramy snapshoty co 2 tyg.)</p>
+        )}
       </div>
     </div>
   )
