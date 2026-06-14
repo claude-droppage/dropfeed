@@ -26,6 +26,10 @@ export async function getFeedPage(
   return { items, hasMore: offset + limit < pool.length }
 }
 
+export async function getBrandActiveAdCount(brandId: string): Promise<number> {
+  return ads.filter((a) => a.brandId === brandId).length
+}
+
 export async function getBrandById(brandId: string): Promise<Brand | undefined> {
   return brands.find((b) => b.id === brandId)
 }

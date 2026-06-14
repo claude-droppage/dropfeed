@@ -16,6 +16,7 @@ const useMock = process.env.NEXT_PUBLIC_DATA_SOURCE === 'mock'
 const impl = useMock ? mock : supabase
 
 export const getFeedPage = impl.getFeedPage
+export const getBrandActiveAdCount = impl.getBrandActiveAdCount
 export const getBrandById = impl.getBrandById
 export const getAdsByBrand = impl.getAdsByBrand
 export const getProductById = impl.getProductById

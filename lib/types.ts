@@ -15,6 +15,8 @@ export interface Brand {
   storeUrl?: string
   country?: string
   avatarInitials: string
+  /** logo marki (profilówka strony FB) zhostowane na R2; brak → fallback na inicjały */
+  logoUrl?: string
 }
 
 export interface Product {
@@ -60,6 +62,10 @@ export interface Ad {
   ageInDays: number
   /** new ad variants published by this brand in last 14 days (used in heat score) */
   newVariantsLast14Days: number
+  /** platformy publikacji z Ad Library (FACEBOOK/INSTAGRAM…) */
+  platforms?: string[]
+  /** liczba wariantów/duplikatów tej kreacji (collation_count) */
+  variantsCount?: number
 }
 
 export interface User {
@@ -100,6 +106,13 @@ export interface FeedItem {
 
 /** Rozmiar partii infinite scroll (niewidoczny dla usera). */
 export const FEED_PAGE_SIZE = 20
+
+/** Max reklam jednej marki w feedzie (różnorodność). */
+export const FEED_PER_BRAND = 10
+
+/** Minimalny staż reklamy (dni od startu) wpuszczanej do feedu.
+ *  FAZA A = 0 (bez filtra). FAZA B: ustaw 7 (tylko sprawdzone winnery). */
+export const FEED_MIN_AGE_DAYS = 0
 
 export interface FeedPageParams {
   offset: number

@@ -9,6 +9,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS } from '@/lib/types'
 import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
@@ -21,6 +22,7 @@ interface BrandRow {
   store_url: string | null
   country: string | null
   avatar_initials: string
+  logo_url: string | null
 }
 
 interface ProductRow {
@@ -57,6 +59,8 @@ interface AdRow {
   confidence: number
   age_in_days: number
   new_variants_last_14_days: number
+  platforms: string[] | null
+  variants_count: number | null
 }
 
 // ─── Mappery DB → typy domenowe ────────────────────────────────────────────
@@ -70,6 +74,7 @@ function mapBrand(r: BrandRow): Brand {
     storeUrl: r.store_url ?? undefined,
     country: r.country ?? undefined,
     avatarInitials: r.avatar_initials,
+    logoUrl: r.logo_url ?? undefined,
   }
 }
 
@@ -110,6 +115,8 @@ function mapAd(r: AdRow): Ad {
     confidence: r.confidence,
     ageInDays: r.age_in_days,
     newVariantsLast14Days: r.new_variants_last_14_days,
+    platforms: r.platforms ?? [],
+    variantsCount: r.variants_count ?? undefined,
   }
 }
 
@@ -119,9 +126,7 @@ function fail(context: string, message: string): never {
 
 // ─── Zapytania ─────────────────────────────────────────────────────────────
 
-// brands + products dołączane do ads jako zagnieżdżone relacje (FK).
-const FEED_SELECT = '*, brand:brands(*), product:products(*)'
-
+// Kształt wiersza zwracanego przez RPC feed_page (jsonb: ad + zagnieżdżone).
 interface FeedRow extends AdRow {
   brand: BrandRow
   product: ProductRow | null
@@ -135,15 +140,18 @@ interface FeedRow extends AdRow {
 export async function getFeedPage(
   { offset, limit, offerTypes }: FeedPageParams,
 ): Promise<FeedPage> {
-  let q = supabase
-    .from('ads')
-    .select(FEED_SELECT)
-    .order('heat_score', { ascending: false })
-    .order('id', { ascending: true })
-    .range(offset, offset + limit - 1)
-  if (offerTypes && offerTypes.length) q = q.in('offer_type', offerTypes)
+  // RPC feed_page: limit FEED_PER_BRAND reklam na markę (różnorodność) + filtr
+  // is_active + minimalny staż; embedding marki/produktu po typie zwracanym (ads).
+  // RPC zwraca gotowy jsonb (ad + brand + product) w poprawnej kolejności —
+  // bez .select()/embeddingu, żeby PostgREST nie zgubił ORDER BY funkcji.
+  const { data, error } = await supabase.rpc('feed_page', {
+    p_offset: offset,
+    p_limit: limit,
+    p_per_brand: FEED_PER_BRAND,
+    p_offer_types: offerTypes && offerTypes.length ? offerTypes : null,
+    p_min_age_days: FEED_MIN_AGE_DAYS,
+  })
 
-  const { data, error } = await q
   if (error) fail('getFeedPage', error.message)
 
   const items = (data as unknown as FeedRow[]).map((row) => ({
@@ -152,6 +160,17 @@ export async function getFeedPage(
     product: row.product ? mapProduct(row.product) : undefined,
   }))
   return { items, hasMore: items.length === limit }
+}
+
+/** Liczba aktywnych reklam marki — sam COUNT, bez pobierania wierszy (deep dive). */
+export async function getBrandActiveAdCount(brandId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('ads')
+    .select('id', { count: 'exact', head: true })
+    .eq('brand_id', brandId)
+    .eq('is_active', true)
+  if (error) fail('getBrandActiveAdCount', error.message)
+  return count ?? 0
 }
 
 export async function getBrandById(brandId: string): Promise<Brand | undefined> {
