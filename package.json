@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.ts",
     "enrich": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/enrich.ts",
-    "rehost": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/rehost.ts"
+    "rehost": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/rehost.ts",
+    "logos": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/logos.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
