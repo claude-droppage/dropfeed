@@ -81,11 +81,14 @@ Deno.serve(async (req) => {
     (resource.defaultDatasetId as string | undefined) ??
     (body.datasetId as string | undefined)
   if (!datasetId) return json({ error: 'no datasetId in payload' }, 400)
+  // market (kraj wyszukiwania) — przekazywany przez scrape.ts per-run; FB nie
+  // daje kraju reklamy komercyjnej, więc tagujemy z runu.
+  const country = typeof body.country === 'string' ? body.country : null
 
   // ─── Pobranie + mapowanie + dedup w obrębie batcha ───────────────────────
   const items = await fetchAllItems(datasetId)
   const seen = new Set<string>()
-  const rows: { ad_archive_id: string; source: string; payload: unknown }[] = []
+  const rows: { ad_archive_id: string; source: string; payload: unknown; country?: string }[] = []
   let skippedNoId = 0
   for (const it of items) {
     const id = it.ad_archive_id
@@ -95,7 +98,7 @@ Deno.serve(async (req) => {
     }
     if (seen.has(id)) continue
     seen.add(id)
-    rows.push({ ad_archive_id: id, source: 'meta_ad_library', payload: it })
+    rows.push({ ad_archive_id: id, source: 'meta_ad_library', payload: it, ...(country ? { country } : {}) })
   }
 
   // ─── Upsert do raw_ads (dedup między runami po ad_archive_id) ─────────────
