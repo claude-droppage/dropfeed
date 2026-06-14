@@ -30,8 +30,9 @@ interface Props {
 }
 
 export default function BrandDeepDive({ brand, ad, brandAdCount, snapshots = [] }: Props) {
+  // wszystkie kraje (country=ALL) + wszystkie reklamy (active_status=all) marki
   const adLibraryUrl = brand.fbPageId
-    ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&view_all_page_id=${brand.fbPageId}`
+    ? `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&view_all_page_id=${brand.fbPageId}`
     : null
   const platforms = ad.platforms ?? []
   const stat = 'flex items-center justify-between text-[13px] py-2 border-b border-line last:border-0'
