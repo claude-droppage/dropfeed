@@ -110,9 +110,9 @@ export const FEED_PAGE_SIZE = 20
 /** Max reklam jednej marki w feedzie (różnorodność). */
 export const FEED_PER_BRAND = 10
 
-/** Minimalny staż reklamy (dni od startu) wpuszczanej do feedu.
- *  FAZA A = 0 (bez filtra). FAZA B: ustaw 7 (tylko sprawdzone winnery). */
-export const FEED_MIN_AGE_DAYS = 0
+/** Minimalny staż reklamy (dni od startu) wpuszczanej do feedu — tylko
+ *  sprawdzone winnery (staż = sygnał, że sprzedają). FAZA B: 7. */
+export const FEED_MIN_AGE_DAYS = 7
 
 export interface FeedPageParams {
   offset: number
