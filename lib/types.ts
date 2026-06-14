@@ -38,6 +38,8 @@ export interface Ad {
   format: AdFormat
   /** thumbnail URL for image; thumbnail/poster URL for video */
   creativeUrl: string
+  /** poster/still URL (R2) — używany jako statyczna miniatura, zwł. dla wideo */
+  thumbUrl?: string
   angle?: AdAngle
   hook?: string
   copy?: string

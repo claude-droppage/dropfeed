@@ -42,6 +42,7 @@ interface AdRow {
   product_id: string | null
   format: Ad['format']
   creative_url: string
+  thumb_url: string | null
   angle: Ad['angle'] | null
   hook: string | null
   copy: string | null
@@ -94,6 +95,7 @@ function mapAd(r: AdRow): Ad {
     productId: r.product_id ?? undefined,
     format: r.format,
     creativeUrl: r.creative_url,
+    thumbUrl: r.thumb_url ?? undefined,
     angle: r.angle ?? undefined,
     hook: r.hook ?? undefined,
     copy: r.copy ?? undefined,

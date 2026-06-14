@@ -48,8 +48,10 @@ function GridCard({
           />
         ) : (
           <img
-            src={ad.creativeUrl}
+            src={ad.thumbUrl ?? ad.creativeUrl}
             alt=""
+            loading="lazy"
+            decoding="async"
             className={`w-full h-full object-cover transition-transform duration-200 ${
               hovering ? 'scale-[1.04]' : 'scale-100'
             }`}

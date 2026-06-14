@@ -8,12 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.ts",
-    "enrich": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/enrich.ts"
+    "enrich": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/enrich.ts",
+    "rehost": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/rehost.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
     "@supabase/supabase-js": "^2.108.1",
     "@use-gesture/react": "^10.3.1",
+    "aws4fetch": "^1.0.20",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.18.0",
     "next": "16.2.9",
