@@ -1,7 +1,7 @@
 export type OfferType = 'physical' | 'digital' | 'app' | 'service' | 'course' | 'other'
 export type AdFormat = 'video' | 'image'
 export type AdAngle = 'ugc' | 'demo' | 'problem-solution' | 'testimonial' | 'lifestyle' | 'comparison' | 'other'
-export type Niche = 'beauty' | 'kitchen' | 'pet' | 'fitness' | 'gadgets' | 'home' | 'fashion' | 'health' | 'tech' | 'education' | 'other'
+export type Niche = 'beauty' | 'kitchen' | 'pet' | 'fitness' | 'gadgets' | 'home' | 'fashion' | 'health' | 'tech' | 'education' | 'baby' | 'auto' | 'garden' | 'office' | 'other'
 export type Plan = 'free' | 'pro'
 export type SwipeDirection = 'skip' | 'save' | 'deep'
 export type FeedMode = 'products' | 'inspirations' | 'hot'
@@ -66,6 +66,10 @@ export interface Ad {
   platforms?: string[]
   /** liczba wariantów/duplikatów tej kreacji (collation_count) */
   variantsCount?: number
+  /** market — kraj wyszukiwania, w którym znaleźliśmy reklamę (PL/US/UK/DE…) */
+  country?: string
+  /** język reklamy wykryty przez Haiku (pl/en/de…) — pod przyszły filtr */
+  language?: string
 }
 
 export interface User {

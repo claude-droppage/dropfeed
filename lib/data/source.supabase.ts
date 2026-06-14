@@ -61,6 +61,8 @@ interface AdRow {
   new_variants_last_14_days: number
   platforms: string[] | null
   variants_count: number | null
+  country: string | null
+  language: string | null
 }
 
 // ─── Mappery DB → typy domenowe ────────────────────────────────────────────
@@ -117,6 +119,8 @@ function mapAd(r: AdRow): Ad {
     newVariantsLast14Days: r.new_variants_last_14_days,
     platforms: r.platforms ?? [],
     variantsCount: r.variants_count ?? undefined,
+    country: r.country ?? undefined,
+    language: r.language ?? undefined,
   }
 }
 
