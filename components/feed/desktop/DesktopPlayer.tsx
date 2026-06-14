@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Image from 'next/image'
 import { ArrowLeft, ArrowRight, X, Flame } from 'lucide-react'
 import type { FeedItem } from '@/lib/types'
+import FeedMediaPreloader from '../FeedMediaPreloader'
 
 const isVideoSrc = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url)
 
@@ -45,6 +46,9 @@ export default function DesktopPlayer({ items, selectedIdx, onSelect, onClose }:
 
   return (
     <div className="flex flex-col h-full">
+      {/* Preload N+1, N+2 — gotowe zanim user przejdzie strzałkami */}
+      <FeedMediaPreloader items={items} index={selectedIdx} ahead={2} sizes="400px" />
+
       {/* Controls bar */}
       <div className="flex items-center gap-2.5 px-5 py-3 border-b border-line bg-bg-void shrink-0">
         <button

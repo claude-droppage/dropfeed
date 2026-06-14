@@ -5,6 +5,7 @@ import { motion, useMotionValue, animate, AnimatePresence } from 'framer-motion'
 import { useDrag } from '@use-gesture/react'
 import type { FeedItem, FeedMode, Brand, Ad } from '@/lib/types'
 import SwipeCard from './SwipeCard'
+import FeedMediaPreloader from './FeedMediaPreloader'
 import CoachMark from './CoachMark'
 import SaveFeedback from './SaveFeedback'
 import BoardPickerSheet from '@/components/boards/BoardPickerSheet'
@@ -216,6 +217,9 @@ export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
           onDeepDive={() => setDeepDiveBrand(item.brand)}
         />
       </motion.div>
+
+      {/* Preload N+1, N+2 (TikTok-style — gotowe zanim user doswipe'uje) */}
+      <FeedMediaPreloader items={items} index={index} ahead={2} sizes="100vw" />
 
       {!coached && <CoachMark onDismiss={() => setCoached(true)} />}
 
