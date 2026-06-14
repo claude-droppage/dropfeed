@@ -112,15 +112,29 @@ export default function DesktopPlayer({ items, selectedIdx, onSelect, onClose }:
               className="w-full h-full object-cover"
             />
           ) : (
-            <Image
-              key={ad.id}
-              src={ad.creativeUrl}
-              alt=""
-              fill
-              sizes="400px"
-              className="object-cover"
-              draggable={false}
-            />
+            <>
+              {/* Rozmyte tło wypełnia boki (Instagram-style) */}
+              <Image
+                key={`${ad.id}-bg`}
+                src={ad.creativeUrl}
+                alt=""
+                fill
+                sizes="400px"
+                aria-hidden
+                className="object-cover scale-110 blur-2xl"
+                draggable={false}
+              />
+              {/* Ostry obraz w pełnej proporcji, wyśrodkowany (bez ucinania) */}
+              <Image
+                key={ad.id}
+                src={ad.creativeUrl}
+                alt=""
+                fill
+                sizes="400px"
+                className="object-contain"
+                draggable={false}
+              />
+            </>
           )}
 
           {/* Bottom scrim */}

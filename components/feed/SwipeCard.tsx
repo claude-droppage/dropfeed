@@ -55,15 +55,28 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
             draggable={false}
           />
         ) : (
-          <Image
-            src={ad.creativeUrl}
-            alt=""
-            fill
-            sizes="100vw"
-            className="object-cover"
-            draggable={false}
-            priority
-          />
+          <>
+            {/* Rozmyte tło: ten sam obraz, powiększony + mocno rozmyty (Instagram) */}
+            <Image
+              src={ad.creativeUrl}
+              alt=""
+              fill
+              sizes="100vw"
+              aria-hidden
+              className="object-cover scale-110 blur-2xl"
+              draggable={false}
+            />
+            {/* Ostry obraz w pełnej, oryginalnej proporcji, wyśrodkowany (bez ucinania) */}
+            <Image
+              src={ad.creativeUrl}
+              alt=""
+              fill
+              sizes="100vw"
+              className="object-contain"
+              draggable={false}
+              priority
+            />
+          </>
         )}
         {/* Bottom scrim */}
         <div
