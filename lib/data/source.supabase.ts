@@ -9,7 +9,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import type { FeedItem, Brand, Product, Ad, Niche } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -127,32 +127,31 @@ interface FeedRow extends AdRow {
   product: ProductRow | null
 }
 
-export async function getFeedItems(): Promise<FeedItem[]> {
-  const { data, error } = await supabase
+/**
+ * Jedna strona feedu (infinite scroll). Sort po heat_score malejąco, stabilny
+ * tie-break po id; opcjonalny filtr offerType robiony w zapytaniu (żeby strona
+ * nie chudła po stronie klienta). hasMore = czy strona przyszła pełna.
+ */
+export async function getFeedPage(
+  { offset, limit, offerTypes }: FeedPageParams,
+): Promise<FeedPage> {
+  let q = supabase
     .from('ads')
     .select(FEED_SELECT)
     .order('heat_score', { ascending: false })
+    .order('id', { ascending: true })
+    .range(offset, offset + limit - 1)
+  if (offerTypes && offerTypes.length) q = q.in('offer_type', offerTypes)
 
-  if (error) fail('getFeedItems', error.message)
+  const { data, error } = await q
+  if (error) fail('getFeedPage', error.message)
 
-  return (data as unknown as FeedRow[]).map((row) => ({
+  const items = (data as unknown as FeedRow[]).map((row) => ({
     ad: mapAd(row),
     brand: mapBrand(row.brand),
     product: row.product ? mapProduct(row.product) : undefined,
   }))
-}
-
-export async function getNicheWeightedItems(
-  preferredNiches: Niche[],
-): Promise<FeedItem[]> {
-  const items = await getFeedItems()
-  if (!preferredNiches.length) return items
-  const preferred = new Set<Niche>(preferredNiches)
-  return [...items].sort((a, b) => {
-    const aNiche = a.product?.niche ?? 'other'
-    const bNiche = b.product?.niche ?? 'other'
-    return (preferred.has(bNiche) ? 1 : 0) - (preferred.has(aNiche) ? 1 : 0)
-  })
+  return { items, hasMore: items.length === limit }
 }
 
 export async function getBrandById(brandId: string): Promise<Brand | undefined> {

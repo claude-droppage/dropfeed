@@ -97,3 +97,18 @@ export interface FeedItem {
   brand: Brand
   product?: Product
 }
+
+/** Rozmiar partii infinite scroll (niewidoczny dla usera). */
+export const FEED_PAGE_SIZE = 20
+
+export interface FeedPageParams {
+  offset: number
+  limit: number
+  /** filtr kategorii oferty z onboardingu; null/[] = bez filtra */
+  offerTypes?: OfferType[] | null
+}
+
+export interface FeedPage {
+  items: FeedItem[]
+  hasMore: boolean
+}

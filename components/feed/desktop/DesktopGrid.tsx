@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { FeedItem } from '@/lib/types'
 import { pl } from '@/lib/i18n/pl'
 
@@ -102,11 +102,30 @@ interface Props {
   items: FeedItem[]
   selectedIdx: number | null
   onSelect: (idx: number) => void
+  onLoadMore?: () => void
+  hasMore?: boolean
 }
 
-export default function DesktopGrid({ items, selectedIdx, onSelect }: Props) {
+export default function DesktopGrid({ items, selectedIdx, onSelect, onLoadMore, hasMore }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Infinite scroll: doładuj gdy sentinel zbliża się do dołu kontenera.
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || !onLoadMore) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) onLoadMore()
+      },
+      { root: scrollRef.current, rootMargin: '600px' },
+    )
+    io.observe(sentinel)
+    return () => io.disconnect()
+  }, [onLoadMore, hasMore])
+
   return (
-    <div className="h-full overflow-y-auto">
+    <div ref={scrollRef} className="h-full overflow-y-auto">
       <div className="grid grid-cols-4 gap-3.5 p-5">
         {items.map((item, idx) => (
           <GridCard
@@ -117,6 +136,8 @@ export default function DesktopGrid({ items, selectedIdx, onSelect }: Props) {
           />
         ))}
       </div>
+      {/* sentinel doładowywania (rootMargin 600px = ładuje zanim user dojedzie) */}
+      <div ref={sentinelRef} className="h-px w-full" />
     </div>
   )
 }

@@ -11,17 +11,17 @@ import DesktopDeepDive from './DesktopDeepDive'
 
 interface Props {
   items: FeedItem[]
+  onLoadMore?: () => void
+  hasMore?: boolean
 }
 
-export default function DesktopFeedView({ items }: Props) {
+export default function DesktopFeedView({ items, onLoadMore, hasMore }: Props) {
   const [mode, setMode] = useState<FeedMode>('products')
   const [view, setView] = useState<'grid' | 'player'>('grid')
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
 
-  const filtered =
-    mode === 'hot'
-      ? [...items].sort((a, b) => b.ad.heatScore - a.ad.heatScore).slice(0, 10)
-      : items
+  // Feed jest nieskończony i już posortowany po heat (server-side) — bez slice'a.
+  const filtered = items
 
   const handleSelect = (idx: number) => {
     setSelectedIdx(idx)
@@ -76,6 +76,8 @@ export default function DesktopFeedView({ items }: Props) {
               items={filtered}
               selectedIdx={selectedIdx}
               onSelect={handleSelect}
+              onLoadMore={onLoadMore}
+              hasMore={hasMore}
             />
           ) : (
             <DesktopPlayer

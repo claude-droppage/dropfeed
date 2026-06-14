@@ -1,43 +1,34 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import type { FeedItem, FeedMode, OfferType } from '@/lib/types'
+import { useInfiniteFeed } from '@/lib/hooks/useInfiniteFeed'
 import ModeToggle from './ModeToggle'
 import SwipeDeck from './SwipeDeck'
 import DesktopFeedView from './desktop/DesktopFeedView'
 
 interface Props {
-  items: FeedItem[]
+  /** Strona 1 z serwera (pobrana bez filtra offerType) */
+  serverItems: FeedItem[]
   initialMode?: FeedMode
   initialOfferTypes?: OfferType[] | null
 }
 
-export default function FeedView({ items, initialMode = 'products', initialOfferTypes }: Props) {
+export default function FeedView({ serverItems, initialMode = 'products', initialOfferTypes }: Props) {
   const [mode, setMode] = useState<FeedMode>(initialMode)
-  // offerTypes: null = no filter; [] treated same as null (show all)
-  const [offerTypes] = useState<OfferType[] | null>(initialOfferTypes ?? null)
+  const offerTypes = initialOfferTypes && initialOfferTypes.length ? initialOfferTypes : null
 
-  const filtered = useMemo(() => {
-    let result = items
-
-    // offerType filter (from intent selection in onboarding)
-    if (offerTypes && offerTypes.length > 0) {
-      result = result.filter((item) => offerTypes.includes(item.ad.offerType))
-    }
-
-    // mode filter
-    if (mode === 'hot') {
-      result = [...result].sort((a, b) => b.ad.heatScore - a.ad.heatScore).slice(0, 10)
-    }
-
-    return result
-  }, [items, mode, offerTypes])
+  // Gdy aktywny filtr offerType, strona 1 z serwera (bez filtra) jest nieprzydatna
+  // → startujemy z pustej listy, hook dociąga przefiltrowaną stronę 1. Bez filtra
+  // używamy strony serwerowej (brak podwójnego fetcha).
+  const [initialItems] = useState<FeedItem[]>(offerTypes ? [] : serverItems)
+  const { items, loadMore, hasMore } = useInfiniteFeed({ initialItems, offerTypes })
 
   return (
     <div className="h-full">
       {/* ── Mobile (<768px) ──────────────────────────────────────────── */}
       <div className="md:hidden relative h-full">
-        <SwipeDeck items={filtered} mode={mode} />
+        <SwipeDeck items={items} mode={mode} onNearEnd={loadMore} hasMore={hasMore} />
         <div className="absolute top-0 inset-x-0 z-20 flex justify-center pointer-events-none">
           <div className="pt-3.5 pointer-events-auto">
             <ModeToggle value={mode} onChange={setMode} />
@@ -47,7 +38,7 @@ export default function FeedView({ items, initialMode = 'products', initialOffer
 
       {/* ── Desktop (≥768px) ─────────────────────────────────────────── */}
       <div className="hidden md:block h-full">
-        <DesktopFeedView items={filtered} />
+        <DesktopFeedView items={items} onLoadMore={loadMore} hasMore={hasMore} />
       </div>
     </div>
   )

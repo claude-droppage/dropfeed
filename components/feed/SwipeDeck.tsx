@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, useMotionValue, animate, AnimatePresence } from 'framer-motion'
 import { useDrag } from '@use-gesture/react'
 import type { FeedItem, FeedMode, Brand, Ad } from '@/lib/types'
@@ -15,10 +15,17 @@ import { pl } from '@/lib/i18n/pl'
 interface Props {
   items: FeedItem[]
   mode: FeedMode
+  onNearEnd?: () => void
+  hasMore?: boolean
 }
 
-export default function SwipeDeck({ items, mode }: Props) {
+export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
   const [index, setIndex] = useState(0)
+
+  // Infinite scroll: doładuj kolejną partię gdy zostało ~5 kart do końca talii.
+  useEffect(() => {
+    if (hasMore && onNearEnd && index >= items.length - 5) onNearEnd()
+  }, [index, items.length, hasMore, onNearEnd])
   const [isMuted, setIsMuted] = useState(true)
   const [coached, setCoached] = useState(false)
   const [saveFeedback, setSaveFeedback] = useState<{ boardName: string } | null>(null)

@@ -2,44 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import type { FeedItem } from '@/lib/types'
-import { loadPreferences, resolveNiches } from '@/lib/preferences'
-import { getNicheWeightedItems } from '@/lib/data/source'
+import { loadPreferences } from '@/lib/preferences'
 import FeedView from './FeedView'
 
 interface Props {
-  /** Items pre-fetched server-side; re-weighted client-side by niche prefs */
+  /** Strona 1 pobrana server-side; kolejne doładowuje infinite scroll w FeedView */
   serverItems: FeedItem[]
 }
 
 export default function FeedGate({ serverItems }: Props) {
   const [ready, setReady] = useState(false)
-  const [items, setItems] = useState<FeedItem[]>(serverItems)
 
   useEffect(() => {
-    let cancelled = false
-    const prefs = loadPreferences()
-    if (prefs?.intent && prefs?.feedMode) {
-      try {
-        const niches = resolveNiches(prefs.niches ?? [])
-        if (niches.length) {
-          getNicheWeightedItems(niches)
-            .then((weighted) => {
-              if (!cancelled) setItems(weighted)
-            })
-            .catch(() => {
-              // use serverItems (already in state)
-            })
-        }
-      } catch {
-        // use serverItems (already in state)
-      }
-    }
-    // middleware guarantees user has been onboarded — always render
+    // middleware gwarantuje onboarding; tu tylko czekamy na montaż klienta
+    // (preferencje żyją w localStorage)
     setReady(true)
-    return () => {
-      cancelled = true
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (!ready) {
@@ -58,12 +35,12 @@ export default function FeedGate({ serverItems }: Props) {
     )
   }
 
-  const prefs = loadPreferences()!
+  const prefs = loadPreferences()
   return (
     <FeedView
-      items={items}
-      initialMode={prefs.feedMode}
-      initialOfferTypes={prefs.offerTypes}
+      serverItems={serverItems}
+      initialMode={prefs?.feedMode ?? 'products'}
+      initialOfferTypes={prefs?.offerTypes ?? null}
     />
   )
 }

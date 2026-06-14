@@ -5,29 +5,25 @@
  */
 
 import { brands, products, ads } from './mock'
-import type { FeedItem, Brand, Product, Ad, Niche } from '@/lib/types'
+import type { Brand, Product, Ad, FeedPage, FeedPageParams } from '@/lib/types'
 
-export async function getFeedItems(): Promise<FeedItem[]> {
-  return ads
-    .map((ad) => ({
-      ad,
-      brand: brands.find((b) => b.id === ad.brandId)!,
-      product: products.find((p) => p.id === ad.productId),
-    }))
-    .sort((a, b) => b.ad.heatScore - a.ad.heatScore)
-}
+const allItems = ads
+  .map((ad) => ({
+    ad,
+    brand: brands.find((b) => b.id === ad.brandId)!,
+    product: products.find((p) => p.id === ad.productId),
+  }))
+  .sort((a, b) => b.ad.heatScore - a.ad.heatScore)
 
-export async function getNicheWeightedItems(
-  preferredNiches: Niche[],
-): Promise<FeedItem[]> {
-  const items = await getFeedItems()
-  if (!preferredNiches.length) return items
-  const preferred = new Set<Niche>(preferredNiches)
-  return [...items].sort((a, b) => {
-    const aNiche = a.product?.niche ?? 'other'
-    const bNiche = b.product?.niche ?? 'other'
-    return (preferred.has(bNiche) ? 1 : 0) - (preferred.has(aNiche) ? 1 : 0)
-  })
+export async function getFeedPage(
+  { offset, limit, offerTypes }: FeedPageParams,
+): Promise<FeedPage> {
+  let pool = allItems
+  if (offerTypes && offerTypes.length) {
+    pool = pool.filter((it) => offerTypes.includes(it.ad.offerType))
+  }
+  const items = pool.slice(offset, offset + limit)
+  return { items, hasMore: offset + limit < pool.length }
 }
 
 export async function getBrandById(brandId: string): Promise<Brand | undefined> {
