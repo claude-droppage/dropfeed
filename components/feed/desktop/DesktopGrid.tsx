@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import type { FeedItem } from '@/lib/types'
 import { pl } from '@/lib/i18n/pl'
 
@@ -47,12 +48,12 @@ function GridCard({
             className="w-full h-full object-cover"
           />
         ) : (
-          <img
+          <Image
             src={ad.thumbUrl ?? ad.creativeUrl}
             alt=""
-            loading="lazy"
-            decoding="async"
-            className={`w-full h-full object-cover transition-transform duration-200 ${
+            fill
+            sizes="(min-width: 1280px) 22vw, (min-width: 768px) 25vw, 50vw"
+            className={`object-cover transition-transform duration-200 ${
               hovering ? 'scale-[1.04]' : 'scale-100'
             }`}
             draggable={false}

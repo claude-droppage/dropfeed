@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { Flame, Package, Cloud, Smartphone, Key, GraduationCap, Clock, Layers, Play, ImageIcon, Heart, ArrowUpRight, ExternalLink } from 'lucide-react'
 import type { FeedItem, OfferType, AdFormat } from '@/lib/types'
 import { pl } from '@/lib/i18n/pl'
@@ -54,11 +55,14 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
             draggable={false}
           />
         ) : (
-          <img
+          <Image
             src={ad.creativeUrl}
             alt=""
-            className="w-full h-full object-cover"
+            fill
+            sizes="100vw"
+            className="object-cover"
             draggable={false}
+            priority
           />
         )}
         {/* Bottom scrim */}

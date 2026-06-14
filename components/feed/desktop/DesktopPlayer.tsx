@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Image from 'next/image'
 import { ArrowLeft, ArrowRight, X, Flame } from 'lucide-react'
 import type { FeedItem } from '@/lib/types'
 
@@ -107,11 +108,13 @@ export default function DesktopPlayer({ items, selectedIdx, onSelect, onClose }:
               className="w-full h-full object-cover"
             />
           ) : (
-            <img
+            <Image
               key={ad.id}
               src={ad.creativeUrl}
               alt=""
-              className="w-full h-full object-cover"
+              fill
+              sizes="400px"
+              className="object-cover"
               draggable={false}
             />
           )}
