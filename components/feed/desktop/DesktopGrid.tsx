@@ -30,6 +30,10 @@ function GridCard({
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
+      // content-visibility:auto — przeglądarka pomija render kart poza ekranem
+      // (wirtualizacja bez zależności); contain-intrinsic-size rezerwuje miejsce,
+      // żeby pasek przewijania i pozycja scrolla były stabilne.
+      style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 320px' } as React.CSSProperties}
       className={`bg-bg-surface border rounded-[14px] overflow-hidden cursor-pointer transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-heat/50 ${
         active
           ? 'border-heat/60 ring-1 ring-heat/25'
