@@ -75,7 +75,7 @@ function uuidv5(name: string): string {
 
 // ─── typy enumów (do schematu structured output) ─────────────────────────────
 const OFFER_TYPES: OfferType[] = ['physical', 'digital', 'app', 'service', 'course', 'other']
-const NICHES: Niche[] = ['beauty', 'kitchen', 'pet', 'fitness', 'gadgets', 'home', 'fashion', 'health', 'tech', 'education', 'other']
+const NICHES: Niche[] = ['beauty', 'kitchen', 'pet', 'fitness', 'gadgets', 'home', 'fashion', 'health', 'tech', 'education', 'baby', 'auto', 'garden', 'office', 'other']
 const ANGLES: AdAngle[] = ['ugc', 'demo', 'problem-solution', 'testimonial', 'lifestyle', 'comparison', 'other']
 
 interface Classification {
@@ -86,6 +86,7 @@ interface Classification {
   category: string
   hook: string
   confidence: number
+  language: string
 }
 
 const SCHEMA = {
@@ -99,8 +100,9 @@ const SCHEMA = {
     category: { type: 'string' },
     hook: { type: 'string' },
     confidence: { type: 'number' },
+    language: { type: 'string' },
   },
-  required: ['offer_type', 'niche', 'angle', 'offer_name', 'category', 'hook', 'confidence'],
+  required: ['offer_type', 'niche', 'angle', 'offer_name', 'category', 'hook', 'confidence', 'language'],
 }
 
 const SYSTEM = `Jesteś klasyfikatorem reklam z Meta Ad Library dla narzędzia ad-spy.
@@ -112,6 +114,7 @@ Na podstawie danych reklamy (tekst, marka, landing) zwróć JSON:
 - category: kategoria oferty (np. "skincare tools", "suplementy").
 - hook: główny hook reklamy w 1 zdaniu (cytuj/parafrazuj z treści).
 - confidence: 0–1, Twoja pewność co do nazwy oferty (wysoka gdy landing/treść jasno ją wskazują, niska gdy zgadujesz).
+- language: kod języka tekstu reklamy ISO 639-1 (np. pl, en, de, fr, es).
 Odpowiadaj WYŁĄCZNIE zgodnie ze schematem.`
 
 // ─── landing fetch (tytuł + opis → wsparcie confidence) ───────────────────────
@@ -185,7 +188,7 @@ function ageInDays(startUnix: number | undefined): number {
   return Math.max(0, Math.floor((NOW_S - startUnix) / 86400))
 }
 
-interface RawRow { ad_archive_id: string; payload: Json }
+interface RawRow { ad_archive_id: string; payload: Json; country?: string | null }
 
 async function main() {
   console.log(`Enrichment → ${SUPABASE_URL}${LIMIT !== Infinity ? `  (limit ${LIMIT})` : ''}`)
@@ -207,7 +210,7 @@ async function main() {
   }
 
   const { data: todoRows, error: e2 } = await supabase
-    .from('raw_ads').select('ad_archive_id,payload').eq('processed', false)
+    .from('raw_ads').select('ad_archive_id,payload,country').eq('processed', false)
     .limit(LIMIT === Infinity ? 100000 : LIMIT)
   if (e2) { console.error('✗ raw_ads(todo):', e2.message); process.exit(1) }
   const todo = todoRows as RawRow[]
@@ -383,6 +386,8 @@ async function main() {
       age_in_days: age,
       new_variants_last_14_days: new14,
       last_seen_at: nowIso,
+      country: r.country ?? null,
+      language: c.language || null,
     })
   }
 
