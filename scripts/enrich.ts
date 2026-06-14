@@ -268,40 +268,64 @@ async function main() {
   }
   console.log(`Sklasyfikowano: ${cls.size}, błędy: ${parseErr}`)
 
-  // 5) Mapowanie → brands / products / ads
-  const brands = new Map<string, Record<string, unknown>>()
-  const products = new Map<string, Record<string, unknown>>()
-  const adRows: Record<string, unknown>[] = []
-  const processedIds: string[] = []
-
+  // 5) Kandydaci z policzonym heat (heat nie zależy od Haiku — z payloadu)
+  const PER_BRAND_CAP = 10
+  interface Cand {
+    r: RawRow; c: Classification; pid: string; brandId: string
+    heat: number; age: number; isActive: boolean; countries: string[]; total: number; new14: number
+  }
+  const cands: Cand[] = []
+  const processedIds: string[] = [] // wszystkie sklasyfikowane (włączone + odcięte capem)
   for (const r of todo) {
     const c = cls.get(r.ad_archive_id)
     if (!c) continue
+    processedIds.push(r.ad_archive_id)
     const s = r.payload.snapshot as Json
     const pid = str(s.page_id) ?? str(r.payload.page_id)
     if (!pid) continue
-    const t = snapshotText(s)
-    const media = creativeUrls(s)
-    const conf = Math.max(0, Math.min(1, Number(c.confidence) || 0))
-    const startUnix = Number(r.payload.start_date) || undefined
-    const age = ageInDays(startUnix)
+    const age = ageInDays(Number(r.payload.start_date) || undefined)
     const isActive = String(r.payload.is_active).toLowerCase() === 'true'
     const countries = Array.isArray(r.payload.targeted_or_reached_countries)
       ? (r.payload.targeted_or_reached_countries as string[]) : []
     const total = brandTotal.get(pid) ?? 1
     const new14 = brandNew14.get(pid) ?? 0
-
     const heat = computeHeatScore({
-      ageInDays: age,
-      newVariantsLast14Days: new14,
-      totalVariants: total,
-      euCountriesCount: countries.length,
-      isActive,
-      scalingSince: undefined,
+      ageInDays: age, newVariantsLast14Days: new14, totalVariants: total,
+      euCountriesCount: countries.length, isActive, scalingSince: undefined,
     })
+    cands.push({ r, c, pid, brandId: uuidv5('brand:' + pid), heat, age, isActive, countries, total, new14 })
+  }
+
+  // Obecne liczby reklam/markę (limit 10 w bazie)
+  const brandIds = [...new Set(cands.map((x) => x.brandId))]
+  const existing = new Map<string, number>()
+  for (let i = 0; i < brandIds.length; i += 300) {
+    const { data, error } = await supabase.from('ads').select('brand_id').in('brand_id', brandIds.slice(i, i + 300))
+    if (error) { console.error('✗ count brand_id:', error.message); process.exit(1) }
+    for (const row of data as { brand_id: string }[]) existing.set(row.brand_id, (existing.get(row.brand_id) ?? 0) + 1)
+  }
+
+  // 6) Mapowanie → brands / products / ads (top po heat, max 10/markę)
+  cands.sort((a, b) => b.heat - a.heat)
+  const perBrand = new Map(existing)
+  const brands = new Map<string, Record<string, unknown>>()
+  const products = new Map<string, Record<string, unknown>>()
+  const adRows: Record<string, unknown>[] = []
+  const nowIso = new Date().toISOString()
+  let capped = 0
+
+  for (const x of cands) {
+    if ((perBrand.get(x.brandId) ?? 0) >= PER_BRAND_CAP) { capped++; continue }
+    perBrand.set(x.brandId, (perBrand.get(x.brandId) ?? 0) + 1)
+
+    const { r, c, pid, brandId, heat, age, isActive, countries, total, new14 } = x
+    const s = r.payload.snapshot as Json
+    const t = snapshotText(s)
+    const media = creativeUrls(s)
+    const conf = Math.max(0, Math.min(1, Number(c.confidence) || 0))
+    const startUnix = Number(r.payload.start_date) || undefined
 
     // brand
-    const brandId = uuidv5('brand:' + pid)
     if (!brands.has(brandId)) {
       const name = str(s.page_name) ?? str(r.payload.page_name) ?? 'Marka'
       const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || name.slice(0, 2).toUpperCase()
@@ -358,11 +382,11 @@ async function main() {
       confidence: conf,
       age_in_days: age,
       new_variants_last_14_days: new14,
+      last_seen_at: nowIso,
     })
-    processedIds.push(r.ad_archive_id)
   }
 
-  // 6) Upsert w kolejności FK
+  // 7) Upsert w kolejności FK
   async function up(table: string, rows: unknown[]) {
     if (!rows.length) return
     const { error } = await supabase.from(table).upsert(rows, { onConflict: 'id' })
@@ -380,7 +404,7 @@ async function main() {
       .in('ad_archive_id', processedIds)
     if (error) { console.error('✗ raw_ads update:', error.message); process.exit(1) }
   }
-  console.log(`\n✓ Gotowe. Reklam: ${adRows.length}, marek: ${brands.size}, produktów: ${products.size}, oznaczonych processed: ${processedIds.length}`)
+  console.log(`\n✓ Gotowe. Reklam: ${adRows.length}, marek: ${brands.size}, produktów: ${products.size}, odcięte limitem 10/markę: ${capped}, oznaczonych processed: ${processedIds.length}`)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })
