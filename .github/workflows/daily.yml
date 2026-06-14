@@ -1,0 +1,38 @@
+name: daily-pipeline
+
+# Codzienny dopływ nowych reklam: scrape (6 nisz) → ingest → enrich → rehost → logos.
+on:
+  schedule:
+    - cron: '0 4 * * *' # 04:00 UTC codziennie
+  workflow_dispatch: {} # ręczne odpalenie z zakładki Actions
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      INGEST_WEBHOOK_SECRET: ${{ secrets.INGEST_WEBHOOK_SECRET }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_PUBLIC_BASE: ${{ secrets.R2_PUBLIC_BASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24' # natywne strippowanie typów TS w skryptach
+      - run: npm ci
+      - name: Scrape + ingest (nowe reklamy)
+        run: npm run scrape
+      - name: Enrichment (Haiku, tylko nowe)
+        run: npm run enrich
+      - name: Rehost kreacji na R2
+        run: npm run rehost
+      - name: Logo nowych marek
+        run: npm run logos
