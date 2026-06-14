@@ -1,7 +1,8 @@
 'use client'
 
+import { useRef, useEffect } from 'react'
 import Image from 'next/image'
-import { Flame, Package, Cloud, Smartphone, Key, GraduationCap, Clock, Layers, Play, ImageIcon, Heart, ArrowUpRight, ExternalLink } from 'lucide-react'
+import { Flame, Package, Cloud, Smartphone, Key, GraduationCap, Clock, Layers, Play, ImageIcon, Heart, ArrowUpRight, ExternalLink, Volume2, VolumeX } from 'lucide-react'
 import type { FeedItem, OfferType, AdFormat } from '@/lib/types'
 import { pl } from '@/lib/i18n/pl'
 
@@ -36,6 +37,14 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
   const { ad, brand, product } = item
   const freshnessWidth = `${Math.min((ad.ageInDays / 90) * 100, 100).toFixed(0)}%`
   const showOfferName = product && product.confidence >= 0.7
+  const isVideo = ad.format === 'video' && isVideoSrc(ad.creativeUrl)
+
+  // Wymuszenie stanu wyciszenia na elemencie <video> (prop `muted` w React bywa
+  // niespójny); tap = gest użytkownika, więc odmutowanie po tapnięciu jest dozwolone.
+  const videoRef = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = isMuted
+  }, [isMuted])
 
   const pill = 'flex items-center gap-1 border border-line text-text-mid text-xs px-2 py-[5px] rounded-[999px] font-mono shrink-0'
   const pillBg = 'bg-[rgba(21,21,26,0.85)]'
@@ -44,8 +53,9 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
     <div className="relative w-full h-full overflow-hidden bg-bg-raised select-none">
       {/* Creative (background) */}
       <div className="absolute inset-0" onClick={onToggleMute}>
-        {ad.format === 'video' && isVideoSrc(ad.creativeUrl) ? (
+        {isVideo ? (
           <video
+            ref={videoRef}
             src={ad.creativeUrl}
             autoPlay
             muted={isMuted}
@@ -84,6 +94,13 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
           style={{ background: 'linear-gradient(to top, rgba(11,11,14,.82) 0%, transparent 100%)' }}
         />
       </div>
+
+      {/* Wskaźnik dźwięku — tap na kreację toggluje; ikona pokazuje stan */}
+      {isVideo && (
+        <div className="absolute top-3 right-3 z-20 flex items-center justify-center w-8 h-8 rounded-full bg-[rgba(21,21,26,0.7)] border border-line text-text-hi pointer-events-none">
+          {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+        </div>
+      )}
 
       {/* Top data bar */}
       <div className="absolute top-12 inset-x-2.5 flex items-center gap-1.5 pointer-events-none">
