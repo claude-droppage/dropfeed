@@ -1,5 +1,6 @@
-import { Settings, Flame, Layers, History, LogOut, ChevronRight } from 'lucide-react'
+import { Settings, Flame, Layers, History, ChevronRight } from 'lucide-react'
 import { pl } from '@/lib/i18n/pl'
+import SignOutButton from '@/components/auth/SignOutButton'
 
 const MENU_ITEMS = [
   { icon: Flame, label: pl.profile.niches, sub: 'fitness, beauty, pet' },
@@ -41,11 +42,7 @@ export default function ProfilePage() {
 
       {/* Logout */}
       <div className="px-4 pb-10">
-        <div className="flex items-center gap-3 bg-bg-surface border border-line rounded-xl px-4 py-3 opacity-40">
-          <LogOut size={16} className="text-text-lo shrink-0" />
-          <p className="text-sm text-text-mid">{pl.profile.logout}</p>
-        </div>
-        <p className="text-center text-[10px] text-text-lo mt-4">{pl.profile.soon}</p>
+        <SignOutButton />
       </div>
     </div>
   )
