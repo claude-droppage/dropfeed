@@ -3,8 +3,8 @@
 // poniższe wartości (e-mail, dane operatora). Reszta stron czyta stąd.
 export const SITE = {
   name: 'SwipeSpy',
-  // Domena: swipespy.io (podłączona). TODO: ustawić skrzynkę kontakt@swipespy.io
-  contactEmail: 'kontakt@swipespy.io',
+  // Domena swipespy.io; skrzynka contact@swipespy.io (przekierowanie skonfigurowane)
+  contactEmail: 'contact@swipespy.io',
   // TODO: dane operatora (RODO) — uzupełnić przed launchem
   operator: '[do uzupełnienia — nazwa / forma prawna operatora]',
   operatorAddress: '[do uzupełnienia — adres]',
