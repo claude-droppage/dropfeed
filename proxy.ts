@@ -20,9 +20,9 @@ export async function proxy(request: NextRequest) {
     return r
   }
 
-  // zalogowany na ekranie logowania/rejestracji → feed
-  if (user && AUTH_PAGES.includes(path)) return go('/feed')
-  // niezalogowany na chronionej trasie → login
+  // zalogowany na ekranie logowania/rejestracji lub landingu → feed
+  if (user && (AUTH_PAGES.includes(path) || path === '/')) return go('/feed')
+  // niezalogowany na chronionej trasie → login ("/" jest publiczny — landing)
   if (!user && isProtected) return go('/login')
   // onboarding-gate jest server-side (app/(app)/layout.tsx + app/onboarding),
   // bo opiera się o stan konta (users.onboarded), nie o cookie.
