@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import { Lock } from 'lucide-react'
 import type { FeedItem } from '@/lib/types'
 import { pl } from '@/lib/i18n/pl'
 
@@ -11,10 +12,12 @@ const isVideoSrc = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url)
 function GridCard({
   item,
   active,
+  blurred,
   onClick,
 }: {
   item: FeedItem
   active: boolean
+  blurred: boolean
   onClick: () => void
 }) {
   const { ad, brand, product } = item
@@ -42,7 +45,7 @@ function GridCard({
     >
       {/* Media */}
       <div className="aspect-[9/12] bg-bg-raised relative overflow-hidden">
-        {hovering && ad.format === 'video' && isVideoSrc(ad.creativeUrl) ? (
+        {hovering && !blurred && ad.format === 'video' && isVideoSrc(ad.creativeUrl) ? (
           <video
             src={ad.creativeUrl}
             autoPlay
@@ -58,19 +61,30 @@ function GridCard({
             fill
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 25vw, 50vw"
             className={`object-cover transition-transform duration-200 ${
-              hovering ? 'scale-[1.04]' : 'scale-100'
+              blurred ? 'blur-md scale-110' : hovering ? 'scale-[1.04]' : 'scale-100'
             }`}
             draggable={false}
           />
         )}
 
+        {/* Blokada — po wyczerpaniu limitu (klik → /pro) */}
+        {blurred && (
+          <div className="absolute inset-0 flex items-center justify-center bg-bg-void/45">
+            <div className="w-9 h-9 rounded-full bg-bg-surface/85 border border-line flex items-center justify-center">
+              <Lock size={15} className="text-heat" />
+            </div>
+          </div>
+        )}
+
         {/* Heat badge */}
-        <span className="absolute top-2 left-2 bg-heat-deep text-[#FAC775] font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-[999px]">
-          {Math.round(ad.heatScore)}
-        </span>
+        {!blurred && (
+          <span className="absolute top-2 left-2 bg-heat-deep text-[#FAC775] font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-[999px]">
+            {Math.round(ad.heatScore)}
+          </span>
+        )}
 
         {/* Video hover indicator (when not a real video URL) */}
-        {hovering && ad.format === 'video' && !isVideoSrc(ad.creativeUrl) && (
+        {hovering && !blurred && ad.format === 'video' && !isVideoSrc(ad.creativeUrl) && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
             <div className="w-9 h-9 rounded-full bg-bg-surface/80 border border-line flex items-center justify-center">
               <span className="text-text-hi text-sm">▶</span>
@@ -90,7 +104,7 @@ function GridCard({
       </div>
 
       {/* Text */}
-      <div className="px-2.5 py-2">
+      <div className={`px-2.5 py-2 ${blurred ? 'blur-sm select-none' : ''}`}>
         <p className="text-text-hi text-[12px] font-medium leading-snug truncate">
           {label}
         </p>
@@ -109,9 +123,10 @@ interface Props {
   onSelect: (idx: number) => void
   onLoadMore?: () => void
   hasMore?: boolean
+  isBlurred?: (adId: string) => boolean
 }
 
-export default function DesktopGrid({ items, selectedIdx, onSelect, onLoadMore, hasMore }: Props) {
+export default function DesktopGrid({ items, selectedIdx, onSelect, onLoadMore, hasMore, isBlurred }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -137,6 +152,7 @@ export default function DesktopGrid({ items, selectedIdx, onSelect, onLoadMore, 
             key={item.ad.id}
             item={item}
             active={selectedIdx === idx}
+            blurred={isBlurred?.(item.ad.id) ?? false}
             onClick={() => onSelect(idx)}
           />
         ))}

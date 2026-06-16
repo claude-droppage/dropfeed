@@ -77,8 +77,11 @@ export function useAdLimit() {
   )
 
   const isLocked = useCallback((adId: string) => status[adId] === 'locked', [status])
+  const isViewed = useCallback((adId: string) => status[adId] === 'allowed', [status])
+  // budżet wyczerpany (limit dobity, plan nie-pro)
+  const limitReached = !unlimited && remaining !== null && remaining <= 0
 
-  return { limit, remaining, unlimited, noteView, isLocked }
+  return { limit, remaining, unlimited, limitReached, noteView, isLocked, isViewed }
 }
 
 export type AdLimit = ReturnType<typeof useAdLimit>

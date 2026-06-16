@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Sparkles } from 'lucide-react'
 import type { FeedItem, FeedMode } from '@/lib/types'
 import type { AdLimit } from '@/lib/hooks/useAdLimit'
+import { pl } from '@/lib/i18n/pl'
 import DesktopTopBar from './DesktopTopBar'
 import DesktopSidebar from './DesktopSidebar'
 import DesktopGrid from './DesktopGrid'
@@ -17,6 +20,7 @@ interface Props {
 }
 
 export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }: Props) {
+  const router = useRouter()
   const [mode, setMode] = useState<FeedMode>('products')
   const [view, setView] = useState<'grid' | 'player'>('grid')
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
@@ -24,9 +28,14 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
   // Feed jest nieskończony i już posortowany po heat (server-side) — bez slice'a.
   const filtered = items
 
+  // Po wyczerpaniu limitu rozmywamy karty jeszcze nieobejrzane (jak konkurencja);
+  // klik na rozmytą → /pro. Obejrzane dziś zostają ostre i otwieralne.
+  const isBlurred = (adId: string) => adLimit.limitReached && !adLimit.isViewed(adId)
+
   // Limit liczony przy OTWARCIU reklamy w playerze (grid = podgląd, nie zużywa).
   const handleSelect = (idx: number) => {
     const id = filtered[idx]?.ad.id
+    if (id && isBlurred(id)) { router.push('/pro'); return }
     if (id) adLimit.noteView(id)
     setSelectedIdx(idx)
     setView('player')
@@ -68,7 +77,7 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
         />
 
         {/* Main content */}
-        <main className="flex-1 min-w-0 min-h-0 overflow-hidden">
+        <main className="relative flex-1 min-w-0 min-h-0 overflow-hidden">
           {view === 'grid' ? (
             <DesktopGrid
               items={filtered}
@@ -76,6 +85,7 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
               onSelect={handleSelect}
               onLoadMore={onLoadMore}
               hasMore={hasMore}
+              isBlurred={isBlurred}
             />
           ) : (
             <DesktopPlayer
@@ -85,6 +95,21 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
               onClose={handleClose}
               locked={selectedItem ? adLimit.isLocked(selectedItem.ad.id) : false}
             />
+          )}
+
+          {/* Pływający CTA odblokowania (po wyczerpaniu limitu, widok gridu) */}
+          {view === 'grid' && adLimit.limitReached && (
+            <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none">
+              <button
+                type="button"
+                onClick={() => router.push('/pro')}
+                className="pointer-events-auto flex items-center gap-2 bg-heat text-[#2A1700] text-sm font-semibold pl-5 pr-4 py-3 rounded-[999px] shadow-[0_8px_28px_rgba(0,0,0,0.45)] hover:brightness-110 transition-all"
+              >
+                <Sparkles size={16} />
+                {pl.profile.upgrade}
+                <span aria-hidden>🔓</span>
+              </button>
+            </div>
           )}
         </main>
 
