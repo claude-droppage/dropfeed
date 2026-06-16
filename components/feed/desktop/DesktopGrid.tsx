@@ -123,17 +123,19 @@ interface Props {
   onSelect: (idx: number) => void
   onLoadMore?: () => void
   hasMore?: boolean
-  isBlurred?: (adId: string) => boolean
+  isBlurred?: (idx: number) => boolean
+  /** free + osiągnięto rozmyte karty → przestań doładowywać (nie ma sensu ładować blura w nieskończoność) */
+  blockLoadMore?: boolean
 }
 
-export default function DesktopGrid({ items, selectedIdx, onSelect, onLoadMore, hasMore, isBlurred }: Props) {
+export default function DesktopGrid({ items, selectedIdx, onSelect, onLoadMore, hasMore, isBlurred, blockLoadMore }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Infinite scroll: doładuj gdy sentinel zbliża się do dołu kontenera.
   useEffect(() => {
     const sentinel = sentinelRef.current
-    if (!sentinel || !onLoadMore) return
+    if (!sentinel || !onLoadMore || blockLoadMore) return
     const io = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore) onLoadMore()
@@ -142,7 +144,7 @@ export default function DesktopGrid({ items, selectedIdx, onSelect, onLoadMore, 
     )
     io.observe(sentinel)
     return () => io.disconnect()
-  }, [onLoadMore, hasMore])
+  }, [onLoadMore, hasMore, blockLoadMore])
 
   return (
     <div ref={scrollRef} className="h-full overflow-y-auto">
@@ -152,7 +154,7 @@ export default function DesktopGrid({ items, selectedIdx, onSelect, onLoadMore, 
             key={item.ad.id}
             item={item}
             active={selectedIdx === idx}
-            blurred={isBlurred?.(item.ad.id) ?? false}
+            blurred={isBlurred?.(idx) ?? false}
             onClick={() => onSelect(idx)}
           />
         ))}

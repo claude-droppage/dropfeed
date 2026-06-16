@@ -28,22 +28,21 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
   // Feed jest nieskończony i już posortowany po heat (server-side) — bez slice'a.
   const filtered = items
 
-  // Po wyczerpaniu limitu rozmywamy karty jeszcze nieobejrzane (jak konkurencja);
-  // klik na rozmytą → /pro. Obejrzane dziś zostają ostre i otwieralne.
-  const isBlurred = (adId: string) => adLimit.limitReached && !adLimit.isViewed(adId)
+  // Desktop = teaser jak konkurencja: free widzi pierwsze `limit` kart (5 rzędów × 4),
+  // reszta rozmyta + pływający CTA. Pro = bez blura. (Mobile ma osobny model: licznik
+  // dzienny per swipe.) Blur jest pozycyjny, więc desktop nie zużywa dziennego limitu.
+  const blurFrom = adLimit.unlimited ? Infinity : (adLimit.limit ?? 20)
+  const isBlurred = (idx: number) => idx >= blurFrom
+  const hasBlurred = !adLimit.unlimited && filtered.length > blurFrom
 
-  // Limit liczony przy OTWARCIU reklamy w playerze (grid = podgląd, nie zużywa).
   const handleSelect = (idx: number) => {
-    const id = filtered[idx]?.ad.id
-    if (id && isBlurred(id)) { router.push('/pro'); return }
-    if (id) adLimit.noteView(id)
+    if (isBlurred(idx)) { router.push('/pro'); return }
     setSelectedIdx(idx)
     setView('player')
   }
 
   const handlePlayerNavigate = (idx: number) => {
-    const id = filtered[idx]?.ad.id
-    if (id) adLimit.noteView(id)
+    if (isBlurred(idx)) { router.push('/pro'); return }
     setSelectedIdx(idx)
     // stay in player view
   }
@@ -86,6 +85,7 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
               onLoadMore={onLoadMore}
               hasMore={hasMore}
               isBlurred={isBlurred}
+              blockLoadMore={hasBlurred}
             />
           ) : (
             <DesktopPlayer
@@ -93,12 +93,12 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
               selectedIdx={selectedIdx ?? 0}
               onSelect={handlePlayerNavigate}
               onClose={handleClose}
-              locked={selectedItem ? adLimit.isLocked(selectedItem.ad.id) : false}
+              playableCount={blurFrom === Infinity ? undefined : blurFrom}
             />
           )}
 
-          {/* Pływający CTA odblokowania (po wyczerpaniu limitu, widok gridu) */}
-          {view === 'grid' && adLimit.limitReached && (
+          {/* Pływający CTA odblokowania (gdy są rozmyte karty, widok gridu) */}
+          {view === 'grid' && hasBlurred && (
             <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none">
               <button
                 type="button"
