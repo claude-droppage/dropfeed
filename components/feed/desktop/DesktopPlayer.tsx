@@ -2,8 +2,10 @@
 
 import { useEffect } from 'react'
 import Image from 'next/image'
-import { ArrowLeft, ArrowRight, X, Flame } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, ArrowRight, X, Flame, Lock } from 'lucide-react'
 import type { FeedItem } from '@/lib/types'
+import { pl } from '@/lib/i18n/pl'
 import FeedMediaPreloader from '../FeedMediaPreloader'
 
 const isVideoSrc = (url: string) => /\.(mp4|webm|mov)(\?|$)/i.test(url)
@@ -13,9 +15,11 @@ interface Props {
   selectedIdx: number
   onSelect: (idx: number) => void
   onClose: () => void
+  locked?: boolean
 }
 
-export default function DesktopPlayer({ items, selectedIdx, onSelect, onClose }: Props) {
+export default function DesktopPlayer({ items, selectedIdx, onSelect, onClose, locked = false }: Props) {
+  const router = useRouter()
   const item = items[selectedIdx]
   const canPrev = selectedIdx > 0
   const canNext = selectedIdx < items.length - 1
@@ -101,61 +105,81 @@ export default function DesktopPlayer({ items, selectedIdx, onSelect, onClose }:
           className="relative rounded-[18px] overflow-hidden bg-bg-raised"
           style={{ aspectRatio: '9/16', height: 'min(600px, calc(100vh - 200px))' }}
         >
-          {ad.format === 'video' && isVideoSrc(ad.creativeUrl) ? (
-            <video
-              key={ad.id}
-              src={ad.creativeUrl}
-              autoPlay
-              muted
-              playsInline
-              loop
-              className="w-full h-full object-cover"
-            />
+          {locked ? (
+            /* Limit wyczerpany — zamiast kreacji panel blokady */
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg-surface px-8 text-center">
+              <div className="w-14 h-14 rounded-full bg-bg-raised border border-line flex items-center justify-center mb-4">
+                <Lock size={22} className="text-heat" />
+              </div>
+              <h3 className="text-text-hi text-lg font-semibold mb-2">{pl.feed.locked.title}</h3>
+              <p className="text-text-mid text-sm leading-relaxed mb-5">{pl.feed.locked.sub}</p>
+              <button
+                type="button"
+                onClick={() => router.push('/pro')}
+                className="bg-heat text-[#2A1700] text-sm font-semibold px-6 py-2.5 rounded-[999px] hover:brightness-110 transition-all"
+              >
+                {pl.feed.locked.cta}
+              </button>
+            </div>
           ) : (
             <>
-              {/* Rozmyte tło wypełnia boki (Instagram-style) */}
-              <Image
-                key={`${ad.id}-bg`}
-                src={ad.creativeUrl}
-                alt=""
-                fill
-                sizes="400px"
-                aria-hidden
-                className="object-cover scale-110 blur-2xl"
-                draggable={false}
+              {ad.format === 'video' && isVideoSrc(ad.creativeUrl) ? (
+                <video
+                  key={ad.id}
+                  src={ad.creativeUrl}
+                  autoPlay
+                  muted
+                  playsInline
+                  loop
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <>
+                  {/* Rozmyte tło wypełnia boki (Instagram-style) */}
+                  <Image
+                    key={`${ad.id}-bg`}
+                    src={ad.creativeUrl}
+                    alt=""
+                    fill
+                    sizes="400px"
+                    aria-hidden
+                    className="object-cover scale-110 blur-2xl"
+                    draggable={false}
+                  />
+                  {/* Ostry obraz w pełnej proporcji, wyśrodkowany (bez ucinania) */}
+                  <Image
+                    key={ad.id}
+                    src={ad.creativeUrl}
+                    alt=""
+                    fill
+                    sizes="400px"
+                    className="object-contain"
+                    draggable={false}
+                  />
+                </>
+              )}
+
+              {/* Bottom scrim */}
+              <div
+                className="absolute inset-x-0 bottom-0 h-2/5 pointer-events-none"
+                style={{ background: 'linear-gradient(to top, rgba(11,11,14,.78) 0%, transparent 100%)' }}
               />
-              {/* Ostry obraz w pełnej proporcji, wyśrodkowany (bez ucinania) */}
-              <Image
-                key={ad.id}
-                src={ad.creativeUrl}
-                alt=""
-                fill
-                sizes="400px"
-                className="object-contain"
-                draggable={false}
-              />
+
+              {/* Heat badge */}
+              <span className="absolute top-3 left-3 flex items-center gap-1 bg-[rgba(65,36,2,0.93)] text-[#FAC775] text-[11px] font-mono font-medium px-2.5 py-1 rounded-[999px]">
+                <Flame size={10} />
+                {Math.round(ad.heatScore)}
+              </span>
+
+              {/* Freshness bar */}
+              <div className="absolute bottom-0 inset-x-0 h-1 bg-line">
+                <div
+                  className="h-full bg-heat"
+                  style={{ width: freshnessWidth, transition: 'width .7s ease-out' }}
+                />
+              </div>
             </>
           )}
-
-          {/* Bottom scrim */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-2/5 pointer-events-none"
-            style={{ background: 'linear-gradient(to top, rgba(11,11,14,.78) 0%, transparent 100%)' }}
-          />
-
-          {/* Heat badge */}
-          <span className="absolute top-3 left-3 flex items-center gap-1 bg-[rgba(65,36,2,0.93)] text-[#FAC775] text-[11px] font-mono font-medium px-2.5 py-1 rounded-[999px]">
-            <Flame size={10} />
-            {Math.round(ad.heatScore)}
-          </span>
-
-          {/* Freshness bar */}
-          <div className="absolute bottom-0 inset-x-0 h-1 bg-line">
-            <div
-              className="h-full bg-heat"
-              style={{ width: freshnessWidth, transition: 'width .7s ease-out' }}
-            />
-          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { FeedItem, FeedMode } from '@/lib/types'
+import type { AdLimit } from '@/lib/hooks/useAdLimit'
 import DesktopTopBar from './DesktopTopBar'
 import DesktopSidebar from './DesktopSidebar'
 import DesktopGrid from './DesktopGrid'
@@ -12,9 +13,10 @@ interface Props {
   items: FeedItem[]
   onLoadMore?: () => void
   hasMore?: boolean
+  adLimit: AdLimit
 }
 
-export default function DesktopFeedView({ items, onLoadMore, hasMore }: Props) {
+export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }: Props) {
   const [mode, setMode] = useState<FeedMode>('products')
   const [view, setView] = useState<'grid' | 'player'>('grid')
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
@@ -22,12 +24,17 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore }: Props) {
   // Feed jest nieskończony i już posortowany po heat (server-side) — bez slice'a.
   const filtered = items
 
+  // Limit liczony przy OTWARCIU reklamy w playerze (grid = podgląd, nie zużywa).
   const handleSelect = (idx: number) => {
+    const id = filtered[idx]?.ad.id
+    if (id) adLimit.noteView(id)
     setSelectedIdx(idx)
     setView('player')
   }
 
   const handlePlayerNavigate = (idx: number) => {
+    const id = filtered[idx]?.ad.id
+    if (id) adLimit.noteView(id)
     setSelectedIdx(idx)
     // stay in player view
   }
@@ -76,6 +83,7 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore }: Props) {
               selectedIdx={selectedIdx ?? 0}
               onSelect={handlePlayerNavigate}
               onClose={handleClose}
+              locked={selectedItem ? adLimit.isLocked(selectedItem.ad.id) : false}
             />
           )}
         </main>

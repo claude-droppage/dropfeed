@@ -5,12 +5,14 @@ import { motion, useMotionValue, animate, AnimatePresence } from 'framer-motion'
 import { useDrag } from '@use-gesture/react'
 import type { FeedItem, FeedMode } from '@/lib/types'
 import SwipeCard from './SwipeCard'
+import LockedCard from './LockedCard'
 import FeedMediaPreloader from './FeedMediaPreloader'
 import CoachMark from './CoachMark'
 import SaveFeedback from './SaveFeedback'
 import BoardPickerSheet from '@/components/boards/BoardPickerSheet'
 import DeepDiveSheet from '@/components/deepdive/DeepDiveSheet'
 import { useBoards } from '@/lib/boards'
+import type { AdLimit } from '@/lib/hooks/useAdLimit'
 import { pl } from '@/lib/i18n/pl'
 
 interface Props {
@@ -18,15 +20,26 @@ interface Props {
   mode: FeedMode
   onNearEnd?: () => void
   hasMore?: boolean
+  adLimit: AdLimit
 }
 
-export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
+export default function SwipeDeck({ items, mode, onNearEnd, hasMore, adLimit }: Props) {
   const [index, setIndex] = useState(0)
 
   // Infinite scroll: doładuj kolejną partię gdy zostało ~5 kart do końca talii.
   useEffect(() => {
     if (hasMore && onNearEnd && index >= items.length - 5) onNearEnd()
   }, [index, items.length, hasMore, onNearEnd])
+
+  // Dzienny limit: zlicz widok przy przejściu na NOWĄ reklamę (idempotentnie).
+  const activeAdId = items[index]?.ad.id
+  const { noteView, isLocked } = adLimit
+  useEffect(() => {
+    if (activeAdId) noteView(activeAdId)
+  }, [activeAdId, noteView])
+  const locked = activeAdId ? isLocked(activeAdId) : false
+  const lockedRef = useRef(locked)
+  lockedRef.current = locked
   const [isMuted, setIsMuted] = useState(true)
   const [coached, setCoached] = useState(false)
   const [saveFeedback, setSaveFeedback] = useState<{ boardName: string } | null>(null)
@@ -161,7 +174,8 @@ export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
         rotation.set((mx / (W() || 400)) * 14)
 
         // Long-press detection: hold in save zone (>60px right) for 450ms
-        if (mx > 60) {
+        // (zablokowanej karty nie zapisujemy — pula wyczerpana)
+        if (mx > 60 && !lockedRef.current) {
           if (!holdTimerRef.current) {
             holdTimerRef.current = setTimeout(() => {
               holdTimerRef.current = null
@@ -176,7 +190,11 @@ export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
 
         if (last) {
           clearHoldTimer()
-          if ((mx > 80 || vx > 0.45) && index < items.length - 1) {
+          // karta zablokowana: poziomy swipe nie zapisuje/pomija — wraca na miejsce
+          if (lockedRef.current) {
+            animate(x, 0, { type: 'spring', stiffness: 350, damping: 35 })
+            animate(rotation, 0, { type: 'spring', stiffness: 350, damping: 35 })
+          } else if ((mx > 80 || vx > 0.45) && index < items.length - 1) {
             runTransition('save')
           } else if ((mx < -80 || vx < -0.45) && index < items.length - 1) {
             runTransition('skip')
@@ -208,20 +226,24 @@ export default function SwipeDeck({ items, mode, onNearEnd, hasMore }: Props) {
         className="absolute inset-0"
         style={{ x, y, rotate: rotation }}
       >
-        <SwipeCard
-          item={item}
-          isMuted={isMuted}
-          onSave={() => runTransition('save')}
-          onSkip={() => runTransition('skip')}
-          onToggleMute={() => setIsMuted((m) => !m)}
-          onDeepDive={() => setDeepDiveItem(item)}
-        />
+        {locked ? (
+          <LockedCard />
+        ) : (
+          <SwipeCard
+            item={item}
+            isMuted={isMuted}
+            onSave={() => runTransition('save')}
+            onSkip={() => runTransition('skip')}
+            onToggleMute={() => setIsMuted((m) => !m)}
+            onDeepDive={() => setDeepDiveItem(item)}
+          />
+        )}
       </motion.div>
 
       {/* Preload N+1, N+2 (TikTok-style — gotowe zanim user doswipe'uje) */}
       <FeedMediaPreloader items={items} index={index} ahead={2} sizes="100vw" />
 
-      {!coached && <CoachMark onDismiss={() => setCoached(true)} />}
+      {!coached && !locked && <CoachMark onDismiss={() => setCoached(true)} />}
 
       <AnimatePresence>
         {saveFeedback && (
