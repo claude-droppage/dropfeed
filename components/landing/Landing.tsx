@@ -232,9 +232,9 @@ export default function Landing() {
         <div className={`${WRAP} flex justify-between items-center flex-wrap gap-4`}>
           <Logo />
           <div className="flex gap-6 text-sm text-text-lo">
-            <a href="#" className="hover:text-text-mid transition-colors">Prywatność</a>
-            <a href="#" className="hover:text-text-mid transition-colors">Regulamin</a>
-            <a href="#" className="hover:text-text-mid transition-colors">Kontakt</a>
+            <Link href="/prywatnosc" className="hover:text-text-mid transition-colors">Prywatność</Link>
+            <Link href="/regulamin" className="hover:text-text-mid transition-colors">Regulamin</Link>
+            <Link href="/kontakt" className="hover:text-text-mid transition-colors">Kontakt</Link>
           </div>
           <div className="text-[13px] text-text-lo">© 2026 dropfeed</div>
         </div>
