@@ -22,7 +22,8 @@ export default function DesktopPlayer({ items, selectedIdx, onSelect, onClose, l
   const router = useRouter()
   const item = items[selectedIdx]
   const canPrev = selectedIdx > 0
-  const canNext = selectedIdx < items.length - 1
+  // limit wyczerpany: nie idziemy dalej w przód (tylko powrót do obejrzanych)
+  const canNext = selectedIdx < items.length - 1 && !locked
 
   /* ── Keyboard shortcuts ─────────────────────────────────────────────── */
   useEffect(() => {

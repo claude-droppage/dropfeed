@@ -1,8 +1,8 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import Image from 'next/image'
-import { Flame, Package, Cloud, Smartphone, Key, GraduationCap, Clock, Layers, Play, ImageIcon, Heart, ArrowUpRight, ExternalLink, Volume2, VolumeX } from 'lucide-react'
+import { Flame, Package, Cloud, Smartphone, Key, GraduationCap, Clock, Layers, Play, Pause, ImageIcon, Heart, ArrowUpRight, ExternalLink, Volume2, VolumeX } from 'lucide-react'
 import type { FeedItem, OfferType, AdFormat } from '@/lib/types'
 import { pl } from '@/lib/i18n/pl'
 
@@ -45,6 +45,43 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
   useEffect(() => {
     if (videoRef.current) videoRef.current.muted = isMuted
   }, [isMuted])
+
+  // Sterowanie wideo (TikTok-style): postęp + play/pauza + przewijanie na dole.
+  const [progress, setProgress] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const scrubRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v || !isVideo) return
+    const onTime = () => { if (v.duration) setProgress(v.currentTime / v.duration) }
+    const onPlay = () => setPaused(false)
+    const onPause = () => setPaused(true)
+    v.addEventListener('timeupdate', onTime)
+    v.addEventListener('play', onPlay)
+    v.addEventListener('pause', onPause)
+    return () => {
+      v.removeEventListener('timeupdate', onTime)
+      v.removeEventListener('play', onPlay)
+      v.removeEventListener('pause', onPause)
+    }
+  }, [isVideo, ad.creativeUrl])
+
+  const togglePlay = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const v = videoRef.current
+    if (!v) return
+    if (v.paused) v.play()
+    else v.pause()
+  }
+  const seekToClientX = (clientX: number) => {
+    const el = scrubRef.current
+    const v = videoRef.current
+    if (!el || !v || !v.duration) return
+    const rect = el.getBoundingClientRect()
+    const frac = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1)
+    v.currentTime = frac * v.duration
+    setProgress(frac)
+  }
 
   const pill = 'flex items-center gap-1 border border-line text-text-mid text-xs px-2 py-[5px] rounded-[999px] font-mono shrink-0'
   const pillBg = 'bg-[rgba(21,21,26,0.85)]'
@@ -154,9 +191,9 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
         )}
       </div>
 
-      {/* Bottom-left brand info — tap opens deep dive */}
+      {/* Bottom-left brand info — tap opens deep dive (wyżej przy wideo: miejsce na pasek) */}
       <button
-        className="absolute left-3 right-[72px] bottom-4 text-left"
+        className={`absolute left-3 right-[72px] ${isVideo ? 'bottom-11' : 'bottom-4'} text-left`}
         onClick={(e) => { e.stopPropagation(); onDeepDive() }}
       >
         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -184,13 +221,61 @@ export default function SwipeCard({ item, isMuted, onSave, onSkip, onToggleMute,
         )}
       </button>
 
-      {/* Freshness bar */}
-      <div className="absolute bottom-0 inset-x-0 h-1 bg-line pointer-events-none">
+      {/* Dół karty: wideo = play/pauza + przewijanie; obraz = pasek świeżości */}
+      {isVideo ? (
         <div
-          className="h-full bg-heat"
-          style={{ width: freshnessWidth, transition: 'width .7s ease-out' }}
-        />
-      </div>
+          className="absolute inset-x-0 bottom-0 z-30 flex items-center gap-2.5 px-3 pt-2 pb-2.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={togglePlay}
+            aria-label={paused ? 'Odtwórz' : 'Pauza'}
+            className="w-7 h-7 rounded-full bg-[rgba(21,21,26,0.85)] border border-line text-text-hi flex items-center justify-center shrink-0"
+          >
+            {paused ? <Play size={13} /> : <Pause size={13} />}
+          </button>
+          <div
+            ref={scrubRef}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+              seekToClientX(e.clientX)
+            }}
+            onPointerMove={(e) => {
+              if (e.buttons !== 1) return
+              e.stopPropagation()
+              seekToClientX(e.clientX)
+            }}
+            className="relative flex-1 h-5 flex items-center cursor-pointer touch-none"
+          >
+            <div className="absolute inset-x-0 h-[3px] rounded-full bg-[rgba(255,255,255,0.2)]">
+              <div className="h-full rounded-full bg-heat" style={{ width: `${progress * 100}%` }} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="absolute bottom-0 inset-x-0 h-1 bg-line pointer-events-none">
+          <div
+            className="h-full bg-heat"
+            style={{ width: freshnessWidth, transition: 'width .7s ease-out' }}
+          />
+        </div>
+      )}
+
+      {/* Wskaźnik pauzy na środku — klik wznawia (tap poza nim dalej = dźwięk) */}
+      {isVideo && paused && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <button
+            type="button"
+            onClick={togglePlay}
+            aria-label="Odtwórz"
+            className="w-16 h-16 rounded-full bg-[rgba(11,11,14,0.55)] flex items-center justify-center pointer-events-auto"
+          >
+            <Play size={28} className="text-text-hi/90 ml-1" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -81,6 +81,13 @@ export default function SwipeDeck({ items, mode, onNearEnd, hasMore, adLimit }: 
       const atEnd = currentIdx >= items.length - 1
       const atStart = currentIdx <= 0
 
+      // Limit wyczerpany: z zablokowanej karty nie idziemy dalej w przód
+      // (bez sensu scrollować przez kłódki) — tylko powrót do obejrzanych.
+      if (lockedRef.current && action !== 'prev') {
+        springBack()
+        return
+      }
+
       if ((action === 'next' || action === 'save' || action === 'skip') && atEnd) {
         springBack()
         return
