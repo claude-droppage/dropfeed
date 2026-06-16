@@ -24,10 +24,8 @@ export async function proxy(request: NextRequest) {
   if (user && AUTH_PAGES.includes(path)) return go('/feed')
   // niezalogowany na chronionej trasie → login
   if (!user && isProtected) return go('/login')
-  // zalogowany bez onboardingu → onboarding (C4 przeniesie stan na konto)
-  if (user && isProtected && path !== '/onboarding' && !request.cookies.get('dropfeed_onboarded')) {
-    return go('/onboarding')
-  }
+  // onboarding-gate jest server-side (app/(app)/layout.tsx + app/onboarding),
+  // bo opiera się o stan konta (users.onboarded), nie o cookie.
   return response
 }
 

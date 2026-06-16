@@ -1,16 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
 import type { FeedMode, OfferType, Niche } from '@/lib/types'
 
-const STORAGE_KEY = 'dropfeed_prefs_v1'
-
 export type IntentKey = 'physical' | 'digital' | 'inspirations' | 'any'
-
-export interface UserPreferences {
-  intent: IntentKey
-  niches: string[] // onboarding niche keys, e.g. ['beauty', 'fitness_health']
-  feedMode: FeedMode
-  offerTypes: OfferType[] | null // null = no filter
-}
 
 // Intent → feedMode + offerTypes mapping
 export const INTENT_CONFIG: Record<
@@ -57,23 +47,6 @@ export const ONBOARDING_NICHES: { key: string; label: string; niches: Niche[] }[
   { key: 'office',         label: 'biuro i organizacja',   niches: ['other'] },
 ]
 
-export function loadPreferences(): UserPreferences | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as UserPreferences) : null
-  } catch {
-    return null
-  }
-}
-
-export function savePreferences(prefs: UserPreferences): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
-  } catch {}
-}
-
 /** Resolve selected onboarding niche keys to the Niche[] used for personalization sort */
 export function resolveNiches(selectedKeys: string[]): Niche[] {
   return [
@@ -83,19 +56,4 @@ export function resolveNiches(selectedKeys: string[]): Niche[] {
       ),
     ),
   ]
-}
-
-export function usePreferences() {
-  const [prefs, setPrefs] = useState<UserPreferences | null | undefined>(undefined)
-
-  useEffect(() => {
-    setPrefs(loadPreferences())
-  }, [])
-
-  const save = useCallback((p: UserPreferences) => {
-    savePreferences(p)
-    setPrefs(p)
-  }, [])
-
-  return { prefs, save }
 }

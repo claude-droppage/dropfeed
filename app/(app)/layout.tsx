@@ -9,6 +9,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // onboarding na koncie: kto nie przeszedł → /onboarding (poza grupą (app))
+  const { data: profile } = await supabase
+    .from('users')
+    .select('onboarded')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!profile?.onboarded) redirect('/onboarding')
+
   return (
     <div className="flex flex-col h-dvh bg-bg-void">
       <main className="flex-1 relative min-h-0">{children}</main>

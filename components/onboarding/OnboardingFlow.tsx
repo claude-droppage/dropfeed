@@ -4,11 +4,11 @@ import { useState } from 'react'
 import {
   INTENT_CONFIG,
   ONBOARDING_NICHES,
-  savePreferences,
+  resolveNiches,
   type IntentKey,
 } from '@/lib/preferences'
+import { createClient } from '@/lib/supabase/client'
 
-const ONBOARDED_COOKIE = 'dropfeed_onboarded=1; path=/; max-age=31536000; SameSite=Strict'
 const INTENT_ORDER: IntentKey[] = ['physical', 'digital', 'inspirations', 'any']
 
 const ICONS: Record<IntentKey, string> = {
@@ -22,17 +22,23 @@ export default function OnboardingFlow() {
   const [step, setStep] = useState(0)
   const [intent, setIntent] = useState<IntentKey | null>(null)
   const [niches, setNiches] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
 
   const toggleNiche = (key: string) =>
     setNiches((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     )
 
-  const finish = () => {
-    if (!intent) return
-    const cfg = INTENT_CONFIG[intent]
-    savePreferences({ intent, niches, feedMode: cfg.feedMode, offerTypes: cfg.offerTypes })
-    document.cookie = ONBOARDED_COOKIE
+  const finish = async () => {
+    if (!intent || saving) return
+    setSaving(true)
+    const supabase = createClient()
+    // zapis na koncie (RPC server-side); selected_niches = rozwiązane nisze
+    const { error } = await supabase.rpc('set_onboarding', {
+      p_intent: intent,
+      p_niches: resolveNiches(niches),
+    })
+    if (error) { setSaving(false); return }
     window.location.replace('/feed')
   }
 
