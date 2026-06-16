@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 
 const WRAP = 'mx-auto max-w-[1140px] px-6'
 const EYEBROW = 'text-heat text-[13px] font-semibold tracking-[0.08em] uppercase text-center mb-3.5'
@@ -23,12 +24,7 @@ const FEATURES = [
 ]
 
 function Logo() {
-  return (
-    <div className="flex items-center gap-2.5 font-bold text-[19px] tracking-tight text-text-hi">
-      <span className="w-[30px] h-[30px] rounded-lg bg-gradient-to-br from-heat to-[#f5b955] flex items-center justify-center text-base">🔥</span>
-      SwipeSpy
-    </div>
-  )
+  return <SwipeSpyLogo className="text-[1.3rem]" />
 }
 
 function Phone({ variant, emoji, chips, brand, desc }: {

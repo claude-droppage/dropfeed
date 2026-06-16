@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 import { SITE } from '@/lib/site'
 
 // Wspólna oprawa stron prawnych/kontaktu: nagłówek z powrotem na "/", treść,
@@ -17,9 +18,8 @@ export default function LegalShell({
     <div className="bg-bg-void text-text-hi min-h-dvh flex flex-col">
       <header className="border-b border-line">
         <div className="mx-auto max-w-[800px] px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-[17px] tracking-tight">
-            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-heat to-[#f5b955] flex items-center justify-center text-sm">🔥</span>
-            {SITE.name}
+          <Link href="/">
+            <SwipeSpyLogo className="text-[1.15rem]" />
           </Link>
           <Link href="/" className="inline-flex items-center gap-1.5 text-text-mid text-sm hover:text-text-hi transition-colors">
             <ArrowLeft size={15} /> Strona główna

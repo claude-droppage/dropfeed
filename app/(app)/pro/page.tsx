@@ -3,6 +3,7 @@ import { Check, Sparkles, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { pl } from '@/lib/i18n/pl'
 import ProNotifyButton from '@/components/pro/ProNotifyButton'
+import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 
 export default async function ProPage() {
   const supabase = await createClient()
@@ -16,7 +17,10 @@ export default async function ProPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-bg-void">
-      <div className="mx-auto max-w-md px-6 pt-10 pb-16 flex flex-col">
+      <div className="mx-auto max-w-md px-6 pt-8 pb-16 flex flex-col">
+        <div className="mb-6">
+          <SwipeSpyLogo className="text-[1.2rem]" />
+        </div>
         <Link href="/feed" className="inline-flex items-center gap-1.5 text-text-lo text-sm mb-8 hover:text-text-mid transition-colors">
           <ArrowLeft size={15} />
           {pl.pro.back}

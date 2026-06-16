@@ -3,6 +3,7 @@ import { Settings, Flame, Layers, History, ChevronRight, Sparkles, Gauge } from 
 import { createClient } from '@/lib/supabase/server'
 import { pl } from '@/lib/i18n/pl'
 import SignOutButton from '@/components/auth/SignOutButton'
+import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 
 const MENU_ITEMS = [
   { icon: Flame, label: pl.profile.niches, sub: 'fitness, beauty, pet' },
@@ -35,8 +36,13 @@ export default async function ProfilePage() {
 
   return (
     <div className="h-full flex flex-col bg-bg-void overflow-y-auto">
+      {/* Logo */}
+      <div className="px-4 pt-5">
+        <SwipeSpyLogo className="text-[1.2rem]" />
+      </div>
+
       {/* Avatar + plan */}
-      <div className="flex flex-col items-center pt-10 pb-6 px-4">
+      <div className="flex flex-col items-center pt-6 pb-6 px-4">
         <div className="w-20 h-20 rounded-full bg-bg-raised border border-line flex items-center justify-center mb-3">
           <span className="text-2xl font-medium text-text-mid">{(user?.email?.[0] ?? 'K').toUpperCase()}</span>
         </div>

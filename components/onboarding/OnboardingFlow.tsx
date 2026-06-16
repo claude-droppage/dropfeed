@@ -8,6 +8,7 @@ import {
   type IntentKey,
 } from '@/lib/preferences'
 import { createClient } from '@/lib/supabase/client'
+import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 
 const INTENT_ORDER: IntentKey[] = ['physical', 'digital', 'inspirations', 'any']
 
@@ -62,19 +63,7 @@ export default function OnboardingFlow() {
           justifyContent: 'space-between',
         }}
       >
-        <p
-          style={{
-            fontFamily: 'var(--font-geist-mono), monospace',
-            fontSize: 15,
-            fontWeight: 500,
-            letterSpacing: '0.5px',
-            color: '#F2F2F0',
-            margin: 0,
-          }}
-        >
-          {'SwipeSpy'}
-          <span style={{ color: '#EF9F27' }}>_</span>
-        </p>
+        <SwipeSpyLogo className="text-[1.1rem]" />
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <div
             style={{

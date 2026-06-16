@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 import { pl } from '@/lib/i18n/pl'
 
 const NAV = [
@@ -17,9 +18,9 @@ export default function DesktopTopBar() {
   return (
     <div className="flex items-center gap-6 px-6 py-3.5 border-b border-line bg-bg-void shrink-0">
       {/* Logo */}
-      <span className="font-mono text-[15px] font-medium tracking-[0.5px] shrink-0">
-        SwipeSpy<span className="text-heat">_</span>
-      </span>
+      <Link href="/feed" className="shrink-0">
+        <SwipeSpyLogo className="text-[1.25rem]" />
+      </Link>
 
       {/* Search placeholder */}
       <div className="flex-1 max-w-sm bg-bg-surface border border-line rounded-[999px] px-4 py-2 text-[13px] text-text-lo select-none">
