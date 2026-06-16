@@ -10,6 +10,15 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 ## Aktualny etap
 
+**Etap 3 faza 1 — w toku (auth + limit + paywall, BEZ Stripe).** Commity C1–C6, każdy zostawia działającą apkę. **C1–C4 GOTOWE i na prodzie.**
+- **C1 — GOTOWE:** klienci `@supabase/ssr` (`lib/supabase/{client,server,proxy}.ts`), odświeżanie sesji w `proxy.ts`, callback OAuth `app/auth/callback/route.ts`.
+- **C2 — GOTOWE:** ekrany `/login` `/register` `/reset-password` (wspólny `AuthForm`), email+hasło + Google (`signInWithOAuth`), Apple slot wyłączony (TODO); sign-out w profilu.
+- **C3 — GOTOWE (po naprawie):** wszystko za logowaniem. **Twardy gate jest server-side w `app/(app)/layout.tsx`** (`getUser()`→redirect `/login`; `cookies()` ⇒ trasy dynamiczne, bez statycznego cache CDN) — NIE polegać tylko na `proxy.ts` (na Vercelu proxy/middleware nie egzekwował, a `/feed` był statycznym prerenderem). **Pułapka, która wywaliła deploye C1–C3:** pliki `lib/supabase/*`, `app/auth/*` oraz wpis `@supabase/ssr` w package.json/lockfile były tylko lokalnie (untracked / niezacommitowane) → lokalny build zielony, Vercel build fail. Diagnoza: `npx vercel inspect <dpl> --logs` (CLI zalogowany). Patrz pamięć `dropfeed-git-tracking-trap`.
+- **C4 — GOTOWE:** onboarding na koncie (nie localStorage). Migracja `0006_onboarding.sql`: `users.onboarded` + `users.intent` + RPC `set_onboarding(p_intent, p_niches)` (SECURITY DEFINER, dla `auth.uid()`; `selected_niches` = rozwiązane nisze). Gate onboardingu server-side (`(app)/layout` + `app/onboarding`); feed pobiera preferencje z konta (`feed/page.tsx` server → `INTENT_CONFIG` → `FeedView`). `FeedGate` usunięty; martwy localStorage z `lib/preferences.ts` usunięty.
+- **C5 (do zrobienia):** schemat + RPC limitu — 20 reklam/dzień, reset 24h; `consume_ad_view` (SECURITY DEFINER), `mark_pro_interest`, `pro_interest_at`.
+- **C6 (do zrobienia):** egzekwowanie limitu + paywall + ekran `/pro` (ZERO Stripe); licznik „zostało X/20".
+- **C7 (boardy na koncie) — ODŁOŻONE** do osobnej mini-fazy. **Przed prodem:** `mailer_autoconfirm=false`, `site_url` na prod.
+
 **Etap 2 — ukończony (2026-06-13).** Feed na mock-danych z pełnym UX: swipe, gesty, boardy, deep-dive, onboarding. Architektura gotowa na podmianę Supabase.
 
 **Etap 1 — UKOŃCZONY (kroki 1–6).** Pipeline danych działa autonomicznie (GitHub Actions). Dodatkowo zrobione: warstwa wydajności feedu, FAZA A (różnorodność/logo/deep dive), FAZA B (żywotność/automatyzacja), wdrożenie. **Produkcja: https://dropfeed-phi.vercel.app** (auto-deploy z `main`; repo publiczne `claude-droppage/dropfeed`). Feed = realne dane (media+logo z Cloudflare R2), tylko reklamy aktywne ≥7 dni; mock usunięty z bazy (kod seeda został jako fallback dev). Migracje aplikowane przez **Supabase Management API**.
@@ -103,7 +112,7 @@ Etap 1 ukończony + **logika feedu** (Część 1: seed-jitter rotacja + miękkie
 - **Style:** Tailwind CSS v4. Design tokens (niżej) jako zmienne CSS + `@theme inline` w `styles/tokens.css`.
 - **Gesty swipe:** `@use-gesture/react` + `framer-motion` (drag, spring, threshold). Nie wymyślać własnej fizyki swipe'a.
 - **Backend (od Etapu 1):** Supabase — Postgres + Auth + Storage + Edge Functions.
-- **Auth:** Supabase Auth — Google OAuth (główne), magic link, email+hasło fallback. Nie budować auth od zera.
+- **Auth:** Supabase Auth — Google OAuth (główne), magic link, email+hasło fallback. Nie budować auth od zera. Klienci `@supabase/ssr` w `lib/supabase/{client,server,proxy}.ts`; sesja odświeżana w `proxy.ts` (Next 16, dawniej middleware); callback OAuth `app/auth/callback/route.ts`. **⚠️ DEV: potwierdzenie e-mail WYŁĄCZONE** (`mailer_autoconfirm=true` w Supabase Auth) — **WŁĄCZYĆ PRZED PRODEM** (Management API `PATCH /config/auth {"mailer_autoconfirm": false}` lub dashboard). `uri_allow_list` = localhost + prod.
 - **Pozyskiwanie danych (od Etapu 1):** Apify (`curious_coder/facebook-ads-library-scraper`) → enrichment Claude API (Haiku, batch) → Supabase.
 - **Hosting:** Vercel.
 - **Płatności (Etap 4):** Stripe.
