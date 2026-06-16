@@ -10,14 +10,14 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 ## Aktualny etap
 
-**Etap 3 faza 1 — w toku (auth + limit + paywall, BEZ Stripe).** Commity C1–C6, każdy zostawia działającą apkę. **C1–C4 GOTOWE i na prodzie.**
+**Etap 3 faza 1 — UKOŃCZONA (auth + limit + paywall, BEZ Stripe).** Commity C1–C6, każdy zostawia działającą apkę. **Wszystkie na prodzie.**
 - **C1 — GOTOWE:** klienci `@supabase/ssr` (`lib/supabase/{client,server,proxy}.ts`), odświeżanie sesji w `proxy.ts`, callback OAuth `app/auth/callback/route.ts`.
 - **C2 — GOTOWE:** ekrany `/login` `/register` `/reset-password` (wspólny `AuthForm`), email+hasło + Google (`signInWithOAuth`), Apple slot wyłączony (TODO); sign-out w profilu.
 - **C3 — GOTOWE (po naprawie):** wszystko za logowaniem. **Twardy gate jest server-side w `app/(app)/layout.tsx`** (`getUser()`→redirect `/login`; `cookies()` ⇒ trasy dynamiczne, bez statycznego cache CDN) — NIE polegać tylko na `proxy.ts` (na Vercelu proxy/middleware nie egzekwował, a `/feed` był statycznym prerenderem). **Pułapka, która wywaliła deploye C1–C3:** pliki `lib/supabase/*`, `app/auth/*` oraz wpis `@supabase/ssr` w package.json/lockfile były tylko lokalnie (untracked / niezacommitowane) → lokalny build zielony, Vercel build fail. Diagnoza: `npx vercel inspect <dpl> --logs` (CLI zalogowany). Patrz pamięć `dropfeed-git-tracking-trap`.
 - **C4 — GOTOWE:** onboarding na koncie (nie localStorage). Migracja `0006_onboarding.sql`: `users.onboarded` + `users.intent` + RPC `set_onboarding(p_intent, p_niches)` (SECURITY DEFINER, dla `auth.uid()`; `selected_niches` = rozwiązane nisze). Gate onboardingu server-side (`(app)/layout` + `app/onboarding`); feed pobiera preferencje z konta (`feed/page.tsx` server → `INTENT_CONFIG` → `FeedView`). `FeedGate` usunięty; martwy localStorage z `lib/preferences.ts` usunięty.
-- **C5 (do zrobienia):** schemat + RPC limitu — 20 reklam/dzień, reset 24h; `consume_ad_view` (SECURITY DEFINER), `mark_pro_interest`, `pro_interest_at`.
-- **C6 (do zrobienia):** egzekwowanie limitu + paywall + ekran `/pro` (ZERO Stripe); licznik „zostało X/20".
-- **C7 (boardy na koncie) — ODŁOŻONE** do osobnej mini-fazy. **Przed prodem:** `mailer_autoconfirm=false`, `site_url` na prod.
+- **C5 — GOTOWE:** schemat + RPC limitu. Migracja `0007_ad_view_limit.sql`: tabela `ad_views` (PK `user+ad+dzień` = idempotentne liczenie; RLS **tylko select**, zapis wyłącznie przez SECURITY DEFINER → user nie obejdzie limitu), RPC `consume_ad_view(p_ad_id)` (zwraca `{allowed,used,remaining,limit,unlimited}`; 20/dzień free, unlimited pro; powrót do obejrzanej nie zużywa), `ad_view_status()` (odczyt bez zużycia), `mark_pro_interest()` + `users.pro_interest_at`. Reset = dzień kalendarzowy.
+- **C6 — GOTOWE:** egzekwowanie + paywall + `/pro` + licznik. Hook `lib/hooks/useAdLimit.ts` (status + `noteView`→consume przy NOWEJ reklamie w przód; status per reklama; fail-open). Mobile `SwipeDeck`: po wyczerpaniu puli nowe karty w przód = `LockedCard` (kłódka + „Ulepsz do Pro"), powrót do obejrzanych działa, swipe-save na locked zablokowany. Desktop `DesktopPlayer`: consume przy otwarciu (grid=podgląd), panel blokady zamiast kreacji. Licznik „X/20" przy feedzie + w profilu („zostało X/20" / „bez limitu", badge planu, link Ulepsz do Pro). Ekran `app/(app)/pro/page.tsx` (49 zł/mc, roczny -30% później, „Powiadom mnie"→`mark_pro_interest`). **ZERO Stripe.**
+- **C7 (boardy na koncie) — ODŁOŻONE** do osobnej mini-fazy (boardy nadal w localStorage `dropfeed_boards_v1`). **Przed prodem:** `mailer_autoconfirm=false`, `site_url` na prod.
 
 **Etap 2 — ukończony (2026-06-13).** Feed na mock-danych z pełnym UX: swipe, gesty, boardy, deep-dive, onboarding. Architektura gotowa na podmianę Supabase.
 
