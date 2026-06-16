@@ -1,6 +1,6 @@
-# dropfeed — Product Requirements Document
+# SwipeSpy — Product Requirements Document
 
-> Robocza nazwa: **dropfeed**. Aplikacja typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i inspiracji biznesowych". Wersja dokumentu: v2. Język tego dokumentu: PL.
+> Nazwa: **SwipeSpy**. Aplikacja typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i inspiracji biznesowych". Wersja dokumentu: v2. Język tego dokumentu: PL.
 
 ---
 

@@ -1,4 +1,4 @@
-# CLAUDE.md — dropfeed
+# CLAUDE.md — SwipeSpy
 
 Ten plik czyta Claude Code przy każdej sesji. Zawiera decyzje techniczne, których NIE wolno samodzielnie zmieniać bez pytania. Kontekst produktowy jest w `PRD.md` — przeczytaj go raz na początku.
 

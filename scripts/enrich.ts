@@ -123,7 +123,7 @@ async function fetchLanding(url: string | undefined): Promise<string> {
   try {
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 6000)
-    const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 dropfeed-enrich' } })
+    const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 swipespy-enrich' } })
     clearTimeout(t)
     if (!res.ok) return ''
     const html = (await res.text()).slice(0, 200_000)

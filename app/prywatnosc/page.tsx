@@ -3,8 +3,8 @@ import LegalShell, { H2, P, UL } from '@/components/legal/LegalShell'
 import { SITE } from '@/lib/site'
 
 export const metadata: Metadata = {
-  title: 'Polityka prywatności — dropfeed',
-  description: 'Jak dropfeed przetwarza dane osobowe (RODO).',
+  title: 'Polityka prywatności — SwipeSpy',
+  description: 'Jak SwipeSpy przetwarza dane osobowe (RODO).',
 }
 
 export default function PrivacyPage() {

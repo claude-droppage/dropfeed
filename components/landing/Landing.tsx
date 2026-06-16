@@ -26,7 +26,7 @@ function Logo() {
   return (
     <div className="flex items-center gap-2.5 font-bold text-[19px] tracking-tight text-text-hi">
       <span className="w-[30px] h-[30px] rounded-lg bg-gradient-to-br from-heat to-[#f5b955] flex items-center justify-center text-base">🔥</span>
-      dropfeed
+      SwipeSpy
     </div>
   )
 }
@@ -117,7 +117,7 @@ export default function Landing() {
         <div className={WRAP}>
           <div className={EYEBROW}>Znasz to uczucie</div>
           <h2 className={H2}>Research reklam nie musi być nudny</h2>
-          <p className={SEC_SUB}>Narzędzia do podglądania reklam mają dane — ale używa się ich jak arkusza kalkulacyjnego. dropfeed odwraca to do góry nogami.</p>
+          <p className={SEC_SUB}>Narzędzia do podglądania reklam mają dane — ale używa się ich jak arkusza kalkulacyjnego. SwipeSpy odwraca to do góry nogami.</p>
           <div className="grid md:grid-cols-2 gap-6 max-w-[860px] mx-auto">
             <div className="p-7 rounded-2xl border bg-[#ef4444]/5 border-[#ef4444]/15">
               <h3 className="text-[15px] font-semibold mb-4 text-[#f87171]">✕ Jak to wygląda dzisiaj</h3>
@@ -130,7 +130,7 @@ export default function Landing() {
               </ul>
             </div>
             <div className="p-7 rounded-2xl border bg-profit/10 border-profit/20">
-              <h3 className="text-[15px] font-semibold mb-4 text-profit">✓ Jak to wygląda w dropfeed</h3>
+              <h3 className="text-[15px] font-semibold mb-4 text-profit">✓ Jak to wygląda w SwipeSpy</h3>
               <ul className="flex flex-col gap-3">
                 {['Otwierasz i scrollujesz — reklama na cały ekran, jak w social mediach', 'Widzisz tylko reklamy żywe i sprawdzone — minimum 7 dni na rynku', 'Wciąga jak feed — wracasz codziennie po nowe pomysły', 'Zaczynasz za darmo, płacisz tyle co za lunch'].map((li) => (
                   <li key={li} className="text-[15px] text-text-mid flex gap-2.5 items-start">
@@ -236,7 +236,7 @@ export default function Landing() {
             <Link href="/regulamin" className="hover:text-text-mid transition-colors">Regulamin</Link>
             <Link href="/kontakt" className="hover:text-text-mid transition-colors">Kontakt</Link>
           </div>
-          <div className="text-[13px] text-text-lo">© 2026 dropfeed</div>
+          <div className="text-[13px] text-text-lo">© 2026 SwipeSpy</div>
         </div>
       </footer>
     </div>

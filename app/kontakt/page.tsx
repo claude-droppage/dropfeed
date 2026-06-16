@@ -4,8 +4,8 @@ import LegalShell, { P } from '@/components/legal/LegalShell'
 import { SITE } from '@/lib/site'
 
 export const metadata: Metadata = {
-  title: 'Kontakt — dropfeed',
-  description: 'Skontaktuj się z zespołem dropfeed.',
+  title: 'Kontakt — SwipeSpy',
+  description: 'Skontaktuj się z zespołem SwipeSpy.',
 }
 
 export default function ContactPage() {

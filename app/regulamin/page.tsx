@@ -3,8 +3,8 @@ import LegalShell, { H2, P, UL } from '@/components/legal/LegalShell'
 import { SITE } from '@/lib/site'
 
 export const metadata: Metadata = {
-  title: 'Regulamin — dropfeed',
-  description: 'Regulamin korzystania z serwisu dropfeed.',
+  title: 'Regulamin — SwipeSpy',
+  description: 'Regulamin korzystania z serwisu SwipeSpy.',
 }
 
 export default function TermsPage() {

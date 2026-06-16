@@ -64,7 +64,7 @@ async function download(url: string): Promise<{ buf: Uint8Array; ct: string } | 
   try {
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 20000)
-    const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 dropfeed-rehost' } })
+    const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 swipespy-rehost' } })
     clearTimeout(t)
     if (!res.ok) return null
     const ct = res.headers.get('content-type') ?? ''

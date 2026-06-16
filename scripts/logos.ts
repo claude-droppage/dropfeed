@@ -77,7 +77,7 @@ async function main() {
     try {
       const ctrl = new AbortController()
       const t = setTimeout(() => ctrl.abort(), 15000)
-      const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 dropfeed-logos' } })
+      const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 swipespy-logos' } })
       clearTimeout(t)
       if (!res.ok) { failDl++; return }
       const ct = res.headers.get('content-type') ?? 'image/jpeg'

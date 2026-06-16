@@ -72,7 +72,7 @@ export default function OnboardingFlow() {
             margin: 0,
           }}
         >
-          {'dropfeed'}
+          {'SwipeSpy'}
           <span style={{ color: '#EF9F27' }}>_</span>
         </p>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

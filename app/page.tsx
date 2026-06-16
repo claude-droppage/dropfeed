@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import Landing from '@/components/landing/Landing'
 
 export const metadata: Metadata = {
-  title: 'dropfeed — winnery, które scrollujesz jak TikToka',
+  title: 'SwipeSpy — winnery, które scrollujesz jak TikToka',
   description:
     'Reklamy, które realnie sprzedają — w feedzie, który wciąga zamiast męczyć. Scrollujesz winnery jak TikToka. 20 reklam dziennie za darmo.',
 }

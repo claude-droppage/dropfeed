@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════
--- dropfeed — schemat inicjalny (Etap 1, krok 1)
+-- SwipeSpy — schemat inicjalny (Etap 1, krok 1)
 -- 9 tabel: raw_ads, brands, products, ads, users, boards, saved_items,
 --          swipes, scrape_config
 -- Enumy 1:1 z lib/types.ts. Bezpieczny do ponownego wklejenia (idempotentny).

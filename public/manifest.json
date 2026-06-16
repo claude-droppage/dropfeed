@@ -1,6 +1,6 @@
 {
-  "name": "dropfeed",
-  "short_name": "dropfeed",
+  "name": "SwipeSpy",
+  "short_name": "SwipeSpy",
   "description": "Tinder dla reklam dropshippingowych",
   "start_url": "/",
   "display": "standalone",
