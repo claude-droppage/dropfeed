@@ -70,17 +70,27 @@ export default function ShopView({ us, pl }: { us: TikTokShopResult; pl: TikTokS
 }
 
 function ShopRow({ item }: { item: TikTokShopItem }) {
-  return (
-    <div className="flex items-center gap-3 bg-bg-surface border border-line rounded-[13px] px-3 py-2.5">
+  const cls = 'flex items-center gap-3 bg-bg-surface border border-line rounded-[13px] px-3 py-2.5'
+  const inner = (
+    <>
       <span className="w-5 text-center text-sm font-extrabold text-text-lo shrink-0">{item.rank}</span>
-      <span className="w-[46px] h-[46px] rounded-[9px] shrink-0 flex items-center justify-center text-2xl bg-gradient-to-b from-bg-raised to-bg-void">{item.emoji}</span>
+      <span className="w-[46px] h-[46px] rounded-[9px] shrink-0 overflow-hidden flex items-center justify-center text-2xl bg-gradient-to-b from-bg-raised to-bg-void">
+        {item.thumbUrl ? <img src={item.thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : item.emoji}
+      </span>
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold text-text-hi truncate">{item.name}</p>
-        <p className="text-[12px] font-bold text-profit mt-1">
-          {item.sold} <span className="text-text-lo font-medium text-[11px]">sprzedanych</span>
+        <p className="text-[12px] mt-1">
+          <span className="font-bold text-profit">{item.sold}</span>
+          <span className="text-text-lo font-medium text-[11px]"> sprzedanych</span>
+          {item.price && <span className="text-text-mid"> · {item.price}</span>}
         </p>
       </div>
-      <span className="text-[12px] font-bold text-profit whitespace-nowrap">{item.trend}</span>
-    </div>
+      {item.trend && <span className="text-[12px] font-bold text-profit whitespace-nowrap">{item.trend}</span>}
+    </>
+  )
+  return item.url ? (
+    <a href={item.url} target="_blank" rel="noopener noreferrer" className={`${cls} hover:border-text-mid transition-colors`}>{inner}</a>
+  ) : (
+    <div className={cls}>{inner}</div>
   )
 }

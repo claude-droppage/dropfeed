@@ -211,9 +211,15 @@ export interface TikTokShopItem {
   rank: number
   name: string
   emoji: string
+  /** realny obraz produktu (TikTok CDN) — gdy jest, UI pokazuje go zamiast emoji */
+  thumbUrl?: string
   /** liczba sprzedanych, sformatowana, np. "14,2 tys." */
   sold: string
-  /** trend, np. "▲ 32%" lub "nowy" */
+  /** cena, np. "$16.99" */
+  price?: string
+  /** link do produktu w TikTok Shop (klik → karta; deep-dive z wideo = T3) */
+  url?: string
+  /** trend, np. "▲ 32%" lub "nowy" (pusty, dopóki nie ma ≥2 snapshotów) */
   trend: string
 }
 

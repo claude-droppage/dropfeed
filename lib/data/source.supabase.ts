@@ -10,7 +10,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY } from '@/lib/types'
-import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -234,8 +234,38 @@ export async function getAllBrands(): Promise<Brand[]> {
 }
 
 // ── Produkty (Faza 1) — realne, z RPC discover_products / product_detail ───
-// TikTok Shop dalej mock (Faza 3).
-export { getTikTokShop } from './mock/tiktokShop'
+
+// ── TikTok Shop (Faza 3, T2) — realne USA z tiktok_shop_products ───────────
+function formatSold(n: number | null): string {
+  if (!n) return '0'
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.', ',')} tys.`
+  return String(n)
+}
+
+export async function getTikTokShop(market: ShopMarket): Promise<TikTokShopResult> {
+  // PL — świeży rynek (TikTok Shop PL od 15.06), brak realnych bestsellerów
+  if (market !== 'US') return { market: 'PL', state: 'fresh', items: [], firstMoves: [] }
+
+  const { data, error } = await supabase
+    .from('tiktok_shop_products')
+    .select('product_id,title,image_url,product_url,current_price,sales_volume')
+    .eq('region', 'us')
+    .order('sales_volume', { ascending: false }) // realny ranking sprzedaży
+    .limit(30)
+  if (error || !data) return { market: 'US', state: 'live', items: [] } // graceful
+
+  const items: TikTokShopItem[] = data.map((r, idx) => ({
+    rank: idx + 1,
+    name: r.title ?? '',
+    emoji: '🛒',
+    thumbUrl: r.image_url ?? undefined,
+    sold: formatSold(r.sales_volume),
+    price: r.current_price != null ? `$${r.current_price}` : undefined,
+    url: r.product_url ?? undefined,
+    trend: '', // brak — doliczymy z ≥2 snapshotów (jak FB momentum)
+  }))
+  return { market: 'US', state: 'live', items }
+}
 
 const NICHE_EMOJI: Record<string, string> = {
   beauty: '💄', kitchen: '🍳', pet: '🐶', fitness: '🏋️', gadgets: '🔌', home: '🏠',
