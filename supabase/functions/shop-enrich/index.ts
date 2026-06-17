@@ -17,7 +17,13 @@ const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPAB
 })
 const STALE_MS = 14 * 24 * 3600 * 1000
 
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'content-type': 'application/json' } })
+// CORS — funkcja wołana z przeglądarki (supabase.functions.invoke z deep-dive)
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, 'content-type': 'application/json' } })
 const toInt = (x: unknown) => { const n = parseInt(String(x ?? '').replace(/[^0-9]/g, ''), 10); return Number.isFinite(n) ? n : null }
 const toNum = (x: unknown) => { const n = Number(x); return Number.isFinite(n) ? n : null }
 
@@ -44,6 +50,7 @@ async function apifyRunSync(act: string, input: unknown, ms = 70000): Promise<Re
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
   const { productId } = await req.json().catch(() => ({}))
   if (!productId) return json({ error: 'productId required' }, 400)
