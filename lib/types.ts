@@ -170,8 +170,10 @@ export interface ProductCard {
   heatScore: number
   /** ile reklam tego produktu */
   adCount: number
-  /** placeholder miniatury (mock) — docelowo thumbUrl */
+  /** placeholder miniatury (mock/fallback) — gdy brak thumbUrl */
   emoji: string
+  /** realna miniatura (R2) — gdy jest, UI pokazuje obraz zamiast emoji */
+  thumbUrl?: string
   signals: DiscoverySignal[]
 }
 
@@ -179,6 +181,8 @@ export interface ProductCard {
 export interface AdMini {
   id: string
   emoji: string
+  /** realna miniatura (R2) — gdy jest, UI pokazuje obraz zamiast emoji */
+  thumbUrl?: string
   heatScore: number
   format: AdFormat
 }

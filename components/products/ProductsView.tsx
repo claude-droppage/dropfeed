@@ -40,7 +40,9 @@ export default function ProductsView({
               href={`/products/${p.id}`}
               className="flex gap-3 bg-bg-surface border border-line rounded-2xl p-2.5 active:border-text-mid transition-colors"
             >
-              <div className={`w-[74px] h-[74px] text-3xl shrink-0 ${THUMB}`}>{p.emoji}</div>
+              <div className={`w-[74px] h-[74px] text-3xl shrink-0 overflow-hidden ${THUMB}`}>
+                {p.thumbUrl ? <img src={p.thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : p.emoji}
+              </div>
               <div className="flex-1 min-w-0 flex flex-col">
                 <p className="text-[13.5px] font-semibold text-text-hi leading-tight">{p.name}</p>
                 <p className="text-[11px] text-text-lo mt-0.5">{p.shop}</p>
@@ -90,7 +92,9 @@ export default function ProductsView({
               className="grid grid-cols-[2.6fr_2.4fr_90px_280px] gap-4 items-center bg-bg-surface border border-line rounded-[14px] px-4 py-3 hover:border-text-mid transition-colors"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-[60px] h-[60px] text-3xl shrink-0 ${THUMB}`}>{p.emoji}</div>
+                <div className={`w-[60px] h-[60px] text-3xl shrink-0 overflow-hidden ${THUMB}`}>
+                  {p.thumbUrl ? <img src={p.thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : p.emoji}
+                </div>
                 <div className="min-w-0">
                   <p className="text-[14.5px] font-semibold text-text-hi truncate">{p.name}</p>
                   <p className="text-xs text-text-lo">{p.shop} · {p.niche}</p>
@@ -107,7 +111,7 @@ export default function ProductsView({
                 <div className="text-[10px] text-text-lo font-semibold mt-1">HEAT</div>
               </div>
 
-              <AdStrip emoji={p.emoji} count={p.adCount} />
+              <AdStrip emoji={p.emoji} thumbUrl={p.thumbUrl} count={p.adCount} />
             </Link>
           ))}
         </div>
@@ -116,14 +120,14 @@ export default function ProductsView({
   )
 }
 
-function AdStrip({ emoji, count }: { emoji: string; count: number }) {
+function AdStrip({ emoji, thumbUrl, count }: { emoji: string; thumbUrl?: string; count: number }) {
   const tiles = Math.min(3, count)
   const more = count - tiles
   return (
     <div className="flex gap-1.5">
       {Array.from({ length: tiles }).map((_, i) => (
-        <div key={i} className="w-16 h-[84px] rounded-[9px] border border-line bg-gradient-to-b from-bg-raised to-bg-void flex items-center justify-center text-2xl relative">
-          {emoji}
+        <div key={i} className="w-16 h-[84px] rounded-[9px] overflow-hidden border border-line bg-gradient-to-b from-bg-raised to-bg-void flex items-center justify-center text-2xl relative">
+          {thumbUrl ? <img src={thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : emoji}
           <span className="absolute w-[22px] h-[22px] rounded-full bg-bg-void/60 flex items-center justify-center text-[9px]">▶</span>
         </div>
       ))}

@@ -10,7 +10,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY } from '@/lib/types'
-import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -233,8 +233,112 @@ export async function getAllBrands(): Promise<Brand[]> {
   return (data as BrandRow[]).map(mapBrand)
 }
 
-// ── Nowe ekrany (Produkty / TikTok Shop) ───────────────────────────────────
-// TODO: realny backend (produkty z ads+snapshots, TikTok Shop ze scrape'a).
-// Na teraz delegacja do mocka — feed zostaje na realnych danych, te ekrany mock.
-export { getDailyProducts, getProductDetail } from './mock/products'
+// ── Produkty (Faza 1) — realne, z RPC discover_products / product_detail ───
+// TikTok Shop dalej mock (Faza 3).
 export { getTikTokShop } from './mock/tiktokShop'
+
+const NICHE_EMOJI: Record<string, string> = {
+  beauty: '💄', kitchen: '🍳', pet: '🐶', fitness: '🏋️', gadgets: '🔌', home: '🏠',
+  fashion: '👗', health: '💊', tech: '💻', education: '📚', baby: '🍼', auto: '🚗',
+  garden: '🌿', office: '🗂️', other: '📦',
+}
+const nicheEmoji = (n: string) => NICHE_EMOJI[n] ?? '📦'
+
+/** domena sklepu z store_url; fallback = nazwa marki */
+function shopLabel(storeUrl: string | null, brandName: string): string {
+  if (!storeUrl) return brandName
+  const host = storeUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]
+  return host || brandName
+}
+
+const FLAG: Record<string, string> = { PL: '🇵🇱', US: '🇺🇸', GB: '🇬🇧', UK: '🇬🇧', DE: '🇩🇪', FR: '🇫🇷', ES: '🇪🇸', IT: '🇮🇹' }
+const flag = (code: string) => FLAG[code?.toUpperCase()] ?? '🌍'
+
+function formatsLabel(formats: string[] | null): string {
+  if (!formats || !formats.length) return '—'
+  const has = (f: string) => formats.includes(f)
+  if (has('video') && has('image')) return 'wideo + foto'
+  if (has('video')) return 'wideo'
+  if (has('image')) return 'foto'
+  return formats.join(', ')
+}
+
+const priceLabel = (p: number | null) => (p != null ? `${Math.round(p)} zł` : '')
+
+interface RawDiscover {
+  id: string; name: string; niche: string; price_in_store: number | null
+  brand_name: string; store_url: string | null; ad_count: number; heat: number
+  newest_age: number | null; has_foreign: boolean; rep_thumb: string | null
+  stores_count: number; momentum_days: number; momentum_delta: number
+}
+
+function buildSignals(r: RawDiscover): DiscoverySignal[] {
+  const out: DiscoverySignal[] = []
+  if (r.momentum_days >= 1 && r.momentum_delta > 0)
+    out.push({ kind: 'momentum', label: `▲ +${r.momentum_delta} reklam / ${r.momentum_days} dni` })
+  if (r.stores_count >= 2) out.push({ kind: 'stores', label: `${r.stores_count} sklepów reklamują` })
+  if (r.has_foreign) out.push({ kind: 'cross', label: 'wygrywa za granicą' })
+  if (out.length < 3 && r.newest_age != null && r.newest_age <= 14)
+    out.push({ kind: 'new', label: `▲ świeże — ${r.newest_age} dni` })
+  return out.slice(0, 3)
+}
+
+function toProductCard(r: RawDiscover): ProductCard {
+  return {
+    id: r.id,
+    name: r.name,
+    shop: shopLabel(r.store_url, r.brand_name),
+    niche: r.niche as Niche,
+    price: priceLabel(r.price_in_store),
+    heatScore: r.heat,
+    adCount: r.ad_count,
+    emoji: nicheEmoji(r.niche),
+    thumbUrl: r.rep_thumb ?? undefined,
+    signals: buildSignals(r),
+  }
+}
+
+export async function getDailyProducts(): Promise<ProductCard[]> {
+  const { data, error } = await supabase.rpc('discover_products', { p_limit: 40 })
+  if (error || !data) return [] // graceful: cienko z danymi → mniej (zero) produktów
+  return (data as RawDiscover[]).map(toProductCard)
+}
+
+interface RawDetail {
+  id: string; name: string; niche: string; price: number | null; offer_url: string | null
+  brand_name: string; store_url: string | null; ad_count: number; heat: number | null
+  oldest_age: number | null; newest_age: number | null; markets: string[] | null
+  formats: string[] | null
+  ads: { id: string; thumb_url: string | null; heat: number; format: AdFormat }[]
+}
+
+export async function getProductDetail(id: string): Promise<ProductDetail | undefined> {
+  const { data, error } = await supabase.rpc('product_detail', { p_id: id })
+  if (error || !data) return undefined
+  const r = data as RawDetail
+  const ads: AdMini[] = (r.ads ?? []).map((a) => ({
+    id: a.id,
+    emoji: nicheEmoji(r.niche),
+    thumbUrl: a.thumb_url ?? undefined,
+    heatScore: Math.round(a.heat ?? 0),
+    format: a.format,
+  }))
+  return {
+    id: r.id,
+    name: r.name,
+    shop: shopLabel(r.store_url, r.brand_name),
+    niche: r.niche as Niche,
+    price: priceLabel(r.price),
+    heatScore: Math.round(r.heat ?? 0),
+    adCount: r.ad_count,
+    emoji: nicheEmoji(r.niche),
+    thumbUrl: ads[0]?.thumbUrl,
+    signals: [],
+    status: r.ad_count > 0 ? 'active' : 'inactive',
+    oldestAdDays: r.oldest_age ?? 0,
+    markets: (r.markets ?? ['PL']).map(flag),
+    formats: formatsLabel(r.formats),
+    ads,
+    adLibraryUrl: `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(r.name)}`,
+  }
+}

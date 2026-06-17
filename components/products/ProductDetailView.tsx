@@ -19,8 +19,8 @@ export default function ProductDetailView({ product: p }: { product: ProductDeta
         </div>
 
         {/* hero */}
-        <div className="w-full h-[150px] rounded-2xl bg-gradient-to-b from-bg-raised to-bg-void flex items-center justify-center text-6xl mb-3.5">
-          {p.emoji}
+        <div className="w-full h-[150px] rounded-2xl overflow-hidden bg-gradient-to-b from-bg-raised to-bg-void flex items-center justify-center text-6xl mb-3.5">
+          {p.thumbUrl ? <img src={p.thumbUrl} alt="" className="w-full h-full object-cover" /> : p.emoji}
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-text-hi leading-tight">{p.name}</h1>
         <p className="text-[13px] text-text-mid mt-1.5 mb-4">
@@ -44,9 +44,9 @@ export default function ProductDetailView({ product: p }: { product: ProductDeta
           {p.ads.map((ad) => (
             <div
               key={ad.id}
-              className="relative w-24 h-32 shrink-0 rounded-xl border border-line bg-gradient-to-b from-bg-raised to-bg-void flex items-center justify-center text-4xl"
+              className="relative w-24 h-32 shrink-0 rounded-xl overflow-hidden border border-line bg-gradient-to-b from-bg-raised to-bg-void flex items-center justify-center text-4xl"
             >
-              {ad.emoji}
+              {ad.thumbUrl ? <img src={ad.thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : ad.emoji}
               <span className="absolute top-1.5 left-1.5 text-[10px] font-bold text-heat bg-bg-void/70 px-1.5 py-0.5 rounded">🔥{ad.heatScore}</span>
               <span className="absolute w-[26px] h-[26px] rounded-full bg-bg-void/60 flex items-center justify-center text-[11px]">▶</span>
             </div>
