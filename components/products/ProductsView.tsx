@@ -6,6 +6,7 @@ import { Search } from 'lucide-react'
 import type { ProductCard, FeedSource } from '@/lib/types'
 import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 import SignalChip from '@/components/ui/SignalChip'
+import SourceToggle from '@/components/shell/SourceToggle'
 
 const THUMB = 'rounded-xl flex items-center justify-center bg-gradient-to-b from-bg-raised to-bg-void'
 
@@ -111,34 +112,6 @@ export default function ProductsView({
           ))}
         </div>
       </div>
-    </div>
-  )
-}
-
-function SourceToggle({
-  value,
-  onChange,
-  full = false,
-}: {
-  value: FeedSource
-  onChange: (v: FeedSource) => void
-  full?: boolean
-}) {
-  const base = 'text-[13px] font-semibold py-2 rounded-[7px] transition-colors'
-  return (
-    <div className={`flex bg-bg-surface border border-line rounded-[10px] p-[3px] gap-0.5 ${full ? 'w-full' : ''}`}>
-      {(['facebook', 'tiktok'] as const).map((s) => (
-        <button
-          key={s}
-          type="button"
-          onClick={() => onChange(s)}
-          className={`${base} ${full ? 'flex-1' : 'px-4'} ${
-            value === s ? 'bg-heat text-[#0a0b0d]' : 'text-text-mid hover:text-text-hi'
-          }`}
-        >
-          {s === 'facebook' ? 'Facebook' : 'TikTok'}
-        </button>
-      ))}
     </div>
   )
 }

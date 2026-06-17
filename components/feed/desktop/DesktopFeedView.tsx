@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sparkles } from 'lucide-react'
-import type { FeedItem, FeedMode } from '@/lib/types'
+import type { FeedItem, FeedSource } from '@/lib/types'
 import type { AdLimit } from '@/lib/hooks/useAdLimit'
 import { pl } from '@/lib/i18n/pl'
-import ModeToggle from '../ModeToggle'
+import SourceToggle from '@/components/shell/SourceToggle'
+import TikTokSoon from '../TikTokSoon'
 import DesktopGrid from './DesktopGrid'
 import DesktopPlayer from './DesktopPlayer'
 import DesktopDeepDive from './DesktopDeepDive'
@@ -16,11 +17,12 @@ interface Props {
   onLoadMore?: () => void
   hasMore?: boolean
   adLimit: AdLimit
+  source: FeedSource
+  onSourceChange: (v: FeedSource) => void
 }
 
-export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }: Props) {
+export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit, source, onSourceChange }: Props) {
   const router = useRouter()
-  const [mode, setMode] = useState<FeedMode>('products')
   const [view, setView] = useState<'grid' | 'player'>('grid')
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
 
@@ -33,6 +35,7 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
   const blurFrom = adLimit.unlimited ? Infinity : (adLimit.limit ?? 20)
   const isBlurred = (idx: number) => idx >= blurFrom
   const hasBlurred = !adLimit.unlimited && filtered.length > blurFrom
+  const showCounter = !adLimit.unlimited && adLimit.remaining !== null
 
   const handleSelect = (idx: number) => {
     if (isBlurred(idx)) { router.push('/pro'); return }
@@ -51,66 +54,69 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
     // keep selectedIdx so the selected card stays highlighted in grid
   }
 
-  const handleModeChange = (m: FeedMode) => {
-    setMode(m)
-    setView('grid')
-    setSelectedIdx(null)
-  }
-
   const selectedItem = selectedIdx !== null ? (filtered[selectedIdx] ?? null) : null
 
   return (
     <div className="flex flex-col h-full bg-bg-void">
-      {/* Pasek narzędzi feedu — nawigacja jest w globalnym sidebarze (shell) */}
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-line shrink-0">
-        <ModeToggle value={mode} onChange={handleModeChange} />
+      {/* Pasek narzędzi feedu — źródło + licznik (nawigacja w globalnym sidebarze) */}
+      <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-line shrink-0">
+        <SourceToggle value={source} onChange={onSourceChange} />
+        {showCounter && source === 'facebook' && (
+          <span className="font-mono text-[12px] text-text-mid bg-bg-surface border border-line rounded-full px-3 py-1.5">
+            zostało {adLimit.remaining}/{adLimit.limit ?? 20}
+          </span>
+        )}
       </div>
 
-      <div className="flex flex-1 min-h-0">
-        {/* Main content */}
-        <main className="relative flex-1 min-w-0 min-h-0 overflow-hidden">
-          {view === 'grid' ? (
-            <DesktopGrid
-              items={filtered}
-              selectedIdx={selectedIdx}
-              onSelect={handleSelect}
-              onLoadMore={onLoadMore}
-              hasMore={hasMore}
-              isBlurred={isBlurred}
-              blockLoadMore={hasBlurred}
-            />
-          ) : (
-            <DesktopPlayer
-              items={filtered}
-              selectedIdx={selectedIdx ?? 0}
-              onSelect={handlePlayerNavigate}
-              onClose={handleClose}
-              playableCount={blurFrom === Infinity ? undefined : blurFrom}
-            />
-          )}
+      {source === 'tiktok' ? (
+        <TikTokSoon />
+      ) : (
+        <div className="flex flex-1 min-h-0">
+          {/* Main content */}
+          <main className="relative flex-1 min-w-0 min-h-0 overflow-hidden">
+            {view === 'grid' ? (
+              <DesktopGrid
+                items={filtered}
+                selectedIdx={selectedIdx}
+                onSelect={handleSelect}
+                onLoadMore={onLoadMore}
+                hasMore={hasMore}
+                isBlurred={isBlurred}
+                blockLoadMore={hasBlurred}
+              />
+            ) : (
+              <DesktopPlayer
+                items={filtered}
+                selectedIdx={selectedIdx ?? 0}
+                onSelect={handlePlayerNavigate}
+                onClose={handleClose}
+                playableCount={blurFrom === Infinity ? undefined : blurFrom}
+              />
+            )}
 
-          {/* Pływający CTA odblokowania (gdy są rozmyte karty, widok gridu) */}
-          {view === 'grid' && hasBlurred && (
-            <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none">
-              <button
-                type="button"
-                onClick={() => router.push('/pro')}
-                className="pointer-events-auto flex items-center gap-2 bg-heat text-[#2A1700] text-sm font-semibold pl-5 pr-4 py-3 rounded-[999px] shadow-[0_8px_28px_rgba(0,0,0,0.45)] hover:brightness-110 transition-all"
-              >
-                <Sparkles size={16} />
-                {pl.profile.upgrade}
-                <span aria-hidden>🔓</span>
-              </button>
-            </div>
-          )}
-        </main>
+            {/* Pływający CTA odblokowania (gdy są rozmyte karty, widok gridu) */}
+            {view === 'grid' && hasBlurred && (
+              <div className="absolute bottom-6 inset-x-0 flex justify-center pointer-events-none">
+                <button
+                  type="button"
+                  onClick={() => router.push('/pro')}
+                  className="pointer-events-auto flex items-center gap-2 bg-heat text-[#2A1700] text-sm font-semibold pl-5 pr-4 py-3 rounded-[999px] shadow-[0_8px_28px_rgba(0,0,0,0.45)] hover:brightness-110 transition-all"
+                >
+                  <Sparkles size={16} />
+                  {pl.profile.upgrade}
+                  <span aria-hidden>🔓</span>
+                </button>
+              </div>
+            )}
+          </main>
 
-        {/* Right deep-dive panel */}
-        <DesktopDeepDive
-          item={selectedItem}
-          onSave={() => { /* TODO: save to board */ }}
-        />
-      </div>
+          {/* Right deep-dive panel */}
+          <DesktopDeepDive
+            item={selectedItem}
+            onSave={() => { /* TODO: save to board */ }}
+          />
+        </div>
+      )}
     </div>
   )
 }
