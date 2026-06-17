@@ -122,6 +122,44 @@ Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i ins
 
 Etap 1 ukończony + **logika feedu** (Część 1: seed-jitter rotacja + miękkie ważenie nisz + różnorodność co 10, RPC `feed_page`) + **geografia/język/nisze** (Część 2: 14 nisz × PL/US/UK/DE/FR/ES, `ads.country`/`ads.language`, rotacja nisz×rynków). Otwarte kierunki: **odkrywanie przez śledzenie sklepów** (wyżej); filtry UI język/kraj (dane już zbierane); **Etap 3** (auth + konta/boardy per user, migracja z localStorage, limit swipe'ów); **Etap 4** (monetyzacja: freemium, Stripe, paywall); skalowanie scrape (tiered).
 
+## Roadmapa po launchu + Silnik odkrywania (plan)
+
+> UI szablonów (Produkty, deep-dive produktu, TikTok Shop PL/USA, przełącznik źródła FB/TikTok, 5-tab shell) jest już w apce na **danych mockowych** za interfejsem `lib/data/source` (kroki D1–D6). Feed reklam zostaje na **realnych** danych. Backend nowych ekranów wpinamy fazami — mock → realne za **tym samym interfejsem**, zero zmian w UI. `source.supabase.ts` deleguje te funkcje do mocka z `// TODO`.
+
+### 1. Fazy (kolejność wdrażania danych)
+- **Faza 1 — Produkty FB:** ekran Produkty + deep-dive + sygnały odkrywania. Źródło = istniejący scrape FB (`ads` + `brands` + `products` + `brand_daily_snapshot`). Prawie darmowe ponad to, co już pobieramy.
+- **Faza 2 — TikTok ads:** reklamy TikTok do feedu (źródło TikTok w przełączniku).
+- **Faza 3 — TikTok Shop USA:** bestsellery z realnymi liczbami sprzedaży.
+- **Faza 4 — TikTok Shop PL:** świeży rynek (start 15.06), first-mover.
+
+### 2. Silnik odkrywania (nie-generyczne produkty)
+Cel: nie „losowe winnery", tylko produkty z realnym sygnałem. Liczone z danych, które już mamy:
+- **Momentum / akceleracja** — przyrost reklam/wariantów w czasie ze `brand_daily_snapshot` (np. „▲ +9 reklam / 5 dni").
+- **Cross-market** — wygrywa za granicą, jeszcze nie w PL (z `ads.country`/`ads.language`): „🇺🇸→🇵🇱 wchodzi do PL".
+- **Seed-and-expand** — z `reconcile` (per-page re-scrape `view_all_page_id`) rozszerzamy znane marki/sklepy.
+- **Klastrowanie** — po URL docelowym (landing) + liczbie reklamodawców („23 sklepy reklamują ten produkt") = sygnał realnej sprzedaży.
+- **Cross-source (później)** — FB rośnie × TikTok sprzedaje = najmocniejszy sygnał.
+Zasada: zacznij od lekkich (liczby/daty/URL); image-embedding i cross-source dokładaj później.
+
+### 3. Zasada danych: twarde fakty TAK, estymaty NIE
+- **TAK** (pokazujemy): sprzedane sztuki, ceny, wyświetlenia/lajki/komentarze, liczba reklam, staż.
+- **NIE** (nie zgadujemy): revenue $ estymowane, „product score", dane SimilarWeb-style (estymowany ruch). Lepiej mniej, ale prawdziwie. (Zieleń w UI = realna sprzedaż TikTok Shop; bursztyn = heat FB.)
+
+### 4. Model danych TikTok Shop (Faza 3)
+- **Warstwa LISTA** — tania, szeroka, odświeżana ~tygodniowo (bestsellery + liczby sprzedaży).
+- **Warstwa DEEP (on-demand)** — dopiero gdy user wejdzie w produkt; na start **tylko wideo** (bez twórców/recenzji); cache ~2 tygodnie; pre-warm top ~20–50.
+- **Embed TikToka = 0 hostingu wideo** — trzymamy tylko ID + metadane, odtwarzanie przez embed (brak kosztów wideo, inaczej niż R2 dla FB).
+
+### 5. Model kosztów
+- **Faza 1** — prawie darmowa ponad scrape FB (produkty/deep-dive/sygnały = obliczenia na już pobieranych danych).
+- **TikTok Shop** — ~$10–20/mc. **Start łącznie** — ~$40–55/mc.
+- **ZASADA: zmierz na małym przebiegu przed skalowaniem** (jak pierwszy wąski scrape FB).
+
+### 6. Backend per funkcja
+- **Feed / Produkty / deep-dive / sygnały** — jeden scrape FB + obliczenia (snapshots, geo, klastrowanie). Bez nowego pipeline'u.
+- **TikTok Shop** — osobny pipeline (Faza 3): LISTA + DEEP on-demand + embed.
+- **Stripe** — Supabase Edge Functions (webhook + checkout + portal). Osobny wątek (Etap 4).
+
 ## Stack (decyzje podjęte — nie zmieniać bez pytania)
 
 - **Framework:** Next.js (App Router) jako PWA. Powód: web-first, najszybsza droga na telefon, twórca zna web. Ścieżka natywna PÓŹNIEJ: ten sam kod opakowany w Capacitor → App Store/Google Play (nie budujemy osobnych aplikacji natywnych; pisz kod tak, by dał się opakować — bez API niedostępnych w webview).
