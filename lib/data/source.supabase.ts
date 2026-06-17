@@ -232,3 +232,9 @@ export async function getAllBrands(): Promise<Brand[]> {
   if (error) fail('getAllBrands', error.message)
   return (data as BrandRow[]).map(mapBrand)
 }
+
+// ── Nowe ekrany (Produkty / TikTok Shop) ───────────────────────────────────
+// TODO: realny backend (produkty z ads+snapshots, TikTok Shop ze scrape'a).
+// Na teraz delegacja do mocka — feed zostaje na realnych danych, te ekrany mock.
+export { getDailyProducts, getProductDetail } from './mock/products'
+export { getTikTokShop } from './mock/tiktokShop'

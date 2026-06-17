@@ -141,3 +141,77 @@ export interface FeedPage {
   items: FeedItem[]
   hasMore: boolean
 }
+
+// ════════════════════════════════════════════════════════════════════════
+// Nowe ekrany: Produkty + TikTok Shop. MOCK na teraz (backend fazami później),
+// ale za tym samym interfejsem `lib/data/source`. Patrz „Roadmapa po launchu"
+// i „Silnik odkrywania" w CLAUDE.md.
+// ════════════════════════════════════════════════════════════════════════
+
+export type FeedSource = 'facebook' | 'tiktok'
+
+/** Rodzaj sygnału odkrywania (kolor/ton dobiera komponent SignalChip). */
+export type DiscoverySignalKind = 'momentum' | 'stores' | 'cross' | 'new' | 'heat'
+
+export interface DiscoverySignal {
+  kind: DiscoverySignalKind
+  label: string
+}
+
+/** Karta produktu „typy dnia" — agregat produkt + sklep + sygnały odkrywania. */
+export interface ProductCard {
+  id: string
+  name: string
+  /** domena sklepu, np. rutynaurody.pl */
+  shop: string
+  niche: Niche
+  /** sformatowana cena, np. "89 zł" */
+  price: string
+  heatScore: number
+  /** ile reklam tego produktu */
+  adCount: number
+  /** placeholder miniatury (mock) — docelowo thumbUrl */
+  emoji: string
+  signals: DiscoverySignal[]
+}
+
+/** Miniatura reklamy w deep-dive produktu. */
+export interface AdMini {
+  id: string
+  emoji: string
+  heatScore: number
+  format: AdFormat
+}
+
+export interface ProductDetail extends ProductCard {
+  status: 'active' | 'inactive'
+  /** staż najstarszej reklamy (dni) */
+  oldestAdDays: number
+  /** rynki jako flagi emoji, np. ['🇵🇱','🇩🇪'] */
+  markets: string[]
+  /** opis formatów, np. "wideo + foto" */
+  formats: string
+  ads: AdMini[]
+  adLibraryUrl: string
+}
+
+export type ShopMarket = 'PL' | 'US'
+
+export interface TikTokShopItem {
+  rank: number
+  name: string
+  emoji: string
+  /** liczba sprzedanych, sformatowana, np. "14,2 tys." */
+  sold: string
+  /** trend, np. "▲ 32%" lub "nowy" */
+  trend: string
+}
+
+export interface TikTokShopResult {
+  market: ShopMarket
+  /** US = live (realne liczby sprzedaży), PL = fresh (świeży rynek od 15.06) */
+  state: 'live' | 'fresh'
+  items: TikTokShopItem[]
+  /** PL — „pierwsze ruchy" na świeżym rynku */
+  firstMoves?: TikTokShopItem[]
+}

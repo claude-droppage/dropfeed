@@ -53,3 +53,7 @@ export async function getProductById(
 export async function getAllBrands(): Promise<Brand[]> {
   return brands
 }
+
+// ── Nowe ekrany (Produkty / TikTok Shop) — mock z lib/data/mock/* ──────────
+export { getDailyProducts, getProductDetail } from './mock/products'
+export { getTikTokShop } from './mock/tiktokShop'
