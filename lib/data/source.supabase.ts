@@ -265,10 +265,14 @@ function formatsLabel(formats: string[] | null): string {
 
 const priceLabel = (p: number | null) => (p != null ? `${Math.round(p)} zł` : '')
 
+const fbAdLibrary = (name: string) =>
+  `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(name)}`
+
 interface RawDiscover {
   id: string; name: string; niche: string; price_in_store: number | null
   brand_name: string; store_url: string | null; ad_count: number; heat: number
-  newest_age: number | null; has_foreign: boolean; rep_thumb: string | null
+  newest_age: number | null; oldest_age: number | null; country: string | null
+  has_foreign: boolean; rep_thumb: string | null
   stores_count: number; momentum_days: number; momentum_delta: number
 }
 
@@ -294,6 +298,9 @@ function toProductCard(r: RawDiscover): ProductCard {
     adCount: r.ad_count,
     emoji: nicheEmoji(r.niche),
     thumbUrl: r.rep_thumb ?? undefined,
+    daysActive: r.oldest_age ?? undefined,
+    country: r.country ?? undefined,
+    adLibraryUrl: fbAdLibrary(r.name),
     signals: buildSignals(r),
   }
 }

@@ -174,6 +174,12 @@ export interface ProductCard {
   emoji: string
   /** realna miniatura (R2) — gdy jest, UI pokazuje obraz zamiast emoji */
   thumbUrl?: string
+  /** staż najstarszej aktywnej reklamy (dni aktywności) */
+  daysActive?: number
+  /** dominujący rynek reklam (ISO kraj) — flaga na karcie */
+  country?: string
+  /** link do FB Ad Library („otwórz reklamę") */
+  adLibraryUrl?: string
   signals: DiscoverySignal[]
 }
 
