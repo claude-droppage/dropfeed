@@ -1,8 +1,7 @@
-// Stub D2 — pełny ekran „TikTok Shop" (PL/USA) wchodzi w D5.
-export default function ShopPage() {
-  return (
-    <div className="h-full flex items-center justify-center text-text-lo text-sm">
-      TikTok Shop — wkrótce
-    </div>
-  )
+import { getTikTokShop } from '@/lib/data/source'
+import ShopView from '@/components/shop/ShopView'
+
+export default async function ShopPage() {
+  const [us, pl] = await Promise.all([getTikTokShop('US'), getTikTokShop('PL')])
+  return <ShopView us={us} pl={pl} />
 }
