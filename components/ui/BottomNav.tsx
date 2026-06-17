@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Flame, Heart, Compass, User } from 'lucide-react'
+import { Flame, Package, Store, Bookmark, User } from 'lucide-react'
 import { pl } from '@/lib/i18n/pl'
 
 const links = [
   { href: '/feed',     label: pl.nav.feed,     Icon: Flame },
-  { href: '/boards',   label: pl.nav.boards,   Icon: Heart },
-  { href: '/discover', label: pl.nav.discover, Icon: Compass },
+  { href: '/products', label: pl.nav.products, Icon: Package },
+  { href: '/shop',     label: pl.nav.shop,     Icon: Store },
+  { href: '/boards',   label: pl.nav.boards,   Icon: Bookmark },
   { href: '/profile',  label: pl.nav.profile,  Icon: User },
 ] as const
 
@@ -18,7 +19,7 @@ export default function BottomNav() {
   return (
     <nav className="flex items-stretch border-t border-line bg-bg-void shrink-0 z-50">
       {links.map(({ href, label, Icon }) => {
-        const active = path === href
+        const active = path === href || path.startsWith(href + '/')
         return (
           <Link
             key={href}

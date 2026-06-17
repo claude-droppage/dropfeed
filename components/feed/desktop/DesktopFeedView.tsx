@@ -6,8 +6,7 @@ import { Sparkles } from 'lucide-react'
 import type { FeedItem, FeedMode } from '@/lib/types'
 import type { AdLimit } from '@/lib/hooks/useAdLimit'
 import { pl } from '@/lib/i18n/pl'
-import DesktopTopBar from './DesktopTopBar'
-import DesktopSidebar from './DesktopSidebar'
+import ModeToggle from '../ModeToggle'
 import DesktopGrid from './DesktopGrid'
 import DesktopPlayer from './DesktopPlayer'
 import DesktopDeepDive from './DesktopDeepDive'
@@ -62,19 +61,12 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit }:
 
   return (
     <div className="flex flex-col h-full bg-bg-void">
-      <DesktopTopBar />
+      {/* Pasek narzędzi feedu — nawigacja jest w globalnym sidebarze (shell) */}
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-line shrink-0">
+        <ModeToggle value={mode} onChange={handleModeChange} />
+      </div>
 
       <div className="flex flex-1 min-h-0">
-        {/* Left sidebar */}
-        <DesktopSidebar
-          mode={mode}
-          onModeChange={handleModeChange}
-          view={view}
-          items={filtered}
-          selectedIdx={selectedIdx}
-          onSelect={handlePlayerNavigate}
-        />
-
         {/* Main content */}
         <main className="relative flex-1 min-w-0 min-h-0 overflow-hidden">
           {view === 'grid' ? (

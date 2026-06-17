@@ -26,10 +26,12 @@ export const pl = {
     },
   },
   nav: {
-    feed: 'Feed',
-    boards: 'Boardy',
-    discover: 'Odkrywaj',
+    feed: 'Reklamy',
+    products: 'Produkty',
+    shop: 'Shop',
+    boards: 'Zapisane',
     profile: 'Profil',
+    discover: 'Odkrywaj',
   },
   boards: {
     title: 'Twoje boardy',

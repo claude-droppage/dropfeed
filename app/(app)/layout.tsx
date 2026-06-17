@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import BottomNav from '@/components/ui/BottomNav'
+import AppSidebar from '@/components/shell/AppSidebar'
 
 // TWARDY gate server-side: każdy render tras (app) sprawdza sesję na serwerze
 // (cookies → render dynamiczny, brak statycznego cache CDN). Niezależne od proxy.
@@ -18,11 +19,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!profile?.onboarded) redirect('/onboarding')
 
   return (
-    <div className="flex flex-col h-dvh bg-bg-void">
-      <main className="flex-1 relative min-h-0">{children}</main>
-      {/* BottomNav only on mobile — desktop has its own top bar */}
-      <div className="md:hidden">
-        <BottomNav />
+    <div className="h-dvh flex bg-bg-void">
+      {/* Desktop: globalny sidebar nawigacji + filtrów */}
+      <AppSidebar className="hidden md:flex" />
+      {/* Kolumna treści: main + (mobile) dolne taby */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <main className="flex-1 relative min-h-0">{children}</main>
+        <div className="md:hidden">
+          <BottomNav />
+        </div>
       </div>
     </div>
   )
