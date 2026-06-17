@@ -27,3 +27,4 @@ export const getAllBrands = impl.getAllBrands
 export const getDailyProducts = impl.getDailyProducts
 export const getProductDetail = impl.getProductDetail
 export const getTikTokShop = impl.getTikTokShop
+export const getTikTokShopProduct = impl.getTikTokShopProduct

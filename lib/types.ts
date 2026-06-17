@@ -208,6 +208,8 @@ export interface ProductDetail extends ProductCard {
 export type ShopMarket = 'PL' | 'US'
 
 export interface TikTokShopItem {
+  /** product_id — klik → /shop/[id] (deep-dive) */
+  id: string
   rank: number
   name: string
   emoji: string
@@ -230,4 +232,43 @@ export interface TikTokShopResult {
   items: TikTokShopItem[]
   /** PL — „pierwsze ruchy" na świeżym rynku */
   firstMoves?: TikTokShopItem[]
+}
+
+/** Powiązane wideo (v0: wyszukane po nazwie produktu — NIE precyzyjne linkowanie). */
+export interface TikTokShopVideo {
+  videoId: string
+  url?: string
+  coverUrl?: string
+  caption?: string
+  author?: string
+  views?: number
+  likes?: number
+  comments?: number
+  createdAt?: string
+}
+
+/** Twardy rdzeń deep-dive (ze scrapeType=product). */
+export interface TikTokShopDetail {
+  id: string
+  title: string
+  thumbUrl?: string
+  price?: string
+  salesVolume?: number
+  exactSold?: number
+  soldLast30?: number
+  rating?: number
+  reviewCount?: number
+  shopVideoCount?: number
+  firstLiveTime?: string
+  shopName?: string
+  shopFollowers?: number
+  shopTotalSold?: number
+  productUrl?: string
+}
+
+export interface TikTokShopProductView {
+  detail: TikTokShopDetail
+  videos: TikTokShopVideo[]
+  /** true → on-demand enrich (cache ~2 tyg wygasł / brak wideo) */
+  videosStale: boolean
 }

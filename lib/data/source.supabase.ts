@@ -10,7 +10,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY } from '@/lib/types'
-import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -255,6 +255,7 @@ export async function getTikTokShop(market: ShopMarket): Promise<TikTokShopResul
   if (error || !data) return { market: 'US', state: 'live', items: [] } // graceful
 
   const items: TikTokShopItem[] = data.map((r, idx) => ({
+    id: r.product_id,
     rank: idx + 1,
     name: r.title ?? '',
     emoji: '🛒',
@@ -377,5 +378,36 @@ export async function getProductDetail(id: string): Promise<ProductDetail | unde
     formats: formatsLabel(r.formats),
     ads,
     adLibraryUrl: `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(r.name)}`,
+  }
+}
+
+// Deep-dive TikTok Shop (T3b): produkt + cache wideo + flaga staleness (~2 tyg).
+// Enrich on-demand robi Edge Function shop-enrich (Apify); tu tylko odczyt.
+const TT_VIDEO_STALE_MS = 14 * 24 * 3600 * 1000
+
+export async function getTikTokShopProduct(id: string): Promise<TikTokShopProductView | null> {
+  const { data: p, error } = await supabase.from('tiktok_shop_products').select('*').eq('product_id', id).maybeSingle()
+  if (error || !p) return null
+  const { data: vids } = await supabase
+    .from('tiktok_shop_video').select('*').eq('product_id', id).order('views', { ascending: false }).limit(8)
+  const videos: TikTokShopVideo[] = (vids ?? []).map((v) => ({
+    videoId: v.video_id, url: v.url ?? undefined, coverUrl: v.cover_url ?? undefined,
+    caption: v.caption ?? undefined, author: v.author ?? undefined,
+    views: v.views ?? undefined, likes: v.likes ?? undefined, comments: v.comments ?? undefined,
+    createdAt: v.created_at ?? undefined,
+  }))
+  const videosStale = !p.videos_fetched_at || Date.now() - Date.parse(p.videos_fetched_at) > TT_VIDEO_STALE_MS || videos.length === 0
+  return {
+    detail: {
+      id: p.product_id, title: p.title ?? '', thumbUrl: p.image_url ?? undefined,
+      price: p.current_price != null ? `$${p.current_price}` : undefined,
+      salesVolume: p.sales_volume ?? undefined, exactSold: p.exact_sold_count ?? undefined,
+      soldLast30: p.sold_last_30 ?? undefined, rating: p.rating ?? undefined, reviewCount: p.review_count ?? undefined,
+      shopVideoCount: p.shop_video_count ?? undefined, firstLiveTime: p.first_live_time ?? undefined,
+      shopName: p.shop_name ?? p.seller_name ?? undefined, shopFollowers: p.shop_followers ?? undefined,
+      shopTotalSold: p.shop_total_sold ?? undefined, productUrl: p.product_url ?? undefined,
+    },
+    videos,
+    videosStale,
   }
 }

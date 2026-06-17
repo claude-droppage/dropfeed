@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { TikTokShopResult, TikTokShopItem, ShopMarket } from '@/lib/types'
 
 export default function ShopView({ us, pl }: { us: TikTokShopResult; pl: TikTokShopResult }) {
@@ -88,9 +89,6 @@ function ShopRow({ item }: { item: TikTokShopItem }) {
       {item.trend && <span className="text-[12px] font-bold text-profit whitespace-nowrap">{item.trend}</span>}
     </>
   )
-  return item.url ? (
-    <a href={item.url} target="_blank" rel="noopener noreferrer" className={`${cls} hover:border-text-mid transition-colors`}>{inner}</a>
-  ) : (
-    <div className={cls}>{inner}</div>
-  )
+  // klik → wewnętrzny deep-dive /shop/[id] (link do TikTok jest na deep-dive)
+  return <Link href={`/shop/${item.id}`} className={`${cls} hover:border-text-mid transition-colors`}>{inner}</Link>
 }

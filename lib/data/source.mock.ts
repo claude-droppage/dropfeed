@@ -57,3 +57,7 @@ export async function getAllBrands(): Promise<Brand[]> {
 // ── Nowe ekrany (Produkty / TikTok Shop) — mock z lib/data/mock/* ──────────
 export { getDailyProducts, getProductDetail } from './mock/products'
 export { getTikTokShop } from './mock/tiktokShop'
+// Deep-dive TikTok Shop nie ma mocka (Faza 3 = realne) — null gdy źródło=mock.
+export async function getTikTokShopProduct(_id: string) {
+  return null
+}
