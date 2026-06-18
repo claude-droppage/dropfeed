@@ -1,6 +1,32 @@
+'use client'
+
+import { useRef } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Bookmark, ExternalLink } from 'lucide-react'
-import type { ProductDetail } from '@/lib/types'
+import type { ProductDetail, AdMini } from '@/lib/types'
+
+const isMp4 = (u?: string) => !!u && /\.(mp4|webm|mov)(\?|$)/i.test(u)
+
+// kafelek kreacji — odtwarza wideo na hover (poster=miniatura), fallback obraz
+function AdTile({ ad }: { ad: AdMini }) {
+  const vid = useRef<HTMLVideoElement>(null)
+  const playable = ad.format === 'video' && isMp4(ad.creativeUrl)
+  return (
+    <div
+      onMouseEnter={() => playable && vid.current?.play().catch(() => {})}
+      onMouseLeave={() => { if (playable && vid.current) { vid.current.pause(); vid.current.currentTime = 0 } }}
+      className="group relative aspect-[3/4] rounded-xl overflow-hidden border border-line bg-bg-raised flex items-center justify-center text-3xl"
+    >
+      {playable ? (
+        <video ref={vid} src={ad.creativeUrl} poster={ad.thumbUrl} muted loop playsInline preload="none" className="w-full h-full object-cover" />
+      ) : ad.thumbUrl ? (
+        <img src={ad.thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+      ) : ad.emoji}
+      <span className="absolute top-1.5 left-1.5 text-[10px] font-bold text-heat bg-bg-void/70 px-1.5 py-0.5 rounded font-mono">🔥{ad.heatScore}</span>
+      {playable && <span className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full bg-bg-void/60 flex items-center justify-center text-[11px] group-hover:opacity-0 transition-opacity">▶</span>}
+    </div>
+  )
+}
 
 // Deep-dive produktu — jedna wyśrodkowana kolumna (mobile + desktop). Dane mock
 // z getProductDetail. „Zapisz" wizualne (boardy na koncie = osobna mini-faza).
@@ -38,19 +64,10 @@ export default function ProductDetailView({ product: p }: { product: ProductDeta
           <Stat value={p.formats} label="formaty" />
         </div>
 
-        {/* ads */}
+        {/* ads — WSZYSTKIE kreatywy, klikalne (play), zdedupowane */}
         <h2 className="text-[13px] font-semibold text-text-mid mb-2.5">Reklamy tego produktu ({p.ads.length})</h2>
-        <div className="flex gap-2.5 overflow-x-auto pb-3 -mx-1 px-1">
-          {p.ads.map((ad) => (
-            <div
-              key={ad.id}
-              className="relative w-24 h-32 shrink-0 rounded-xl overflow-hidden border border-line bg-gradient-to-b from-bg-raised to-bg-void flex items-center justify-center text-4xl"
-            >
-              {ad.thumbUrl ? <img src={ad.thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : ad.emoji}
-              <span className="absolute top-1.5 left-1.5 text-[10px] font-bold text-heat bg-bg-void/70 px-1.5 py-0.5 rounded">🔥{ad.heatScore}</span>
-              <span className="absolute w-[26px] h-[26px] rounded-full bg-bg-void/60 flex items-center justify-center text-[11px]">▶</span>
-            </div>
-          ))}
+        <div className="grid grid-cols-3 gap-2.5">
+          {p.ads.map((ad) => <AdTile key={ad.id} ad={ad} />)}
         </div>
 
         <a
