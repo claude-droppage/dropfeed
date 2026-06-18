@@ -241,10 +241,21 @@ export interface TikTokShopVideo {
   coverUrl?: string
   caption?: string
   author?: string
+  authorAvatar?: string
+  authorFollowers?: number
   views?: number
   likes?: number
   comments?: number
   createdAt?: string
+}
+
+/** Twórca powiązanych wideo (z authorMeta — handle/avatar/obserwujący). */
+export interface TikTokShopCreator {
+  handle: string
+  avatar?: string
+  followers?: number
+  /** suma views jego wideo dla tego produktu */
+  views: number
 }
 
 /** Twardy rdzeń deep-dive (ze scrapeType=product). */
@@ -269,6 +280,8 @@ export interface TikTokShopDetail {
 export interface TikTokShopProductView {
   detail: TikTokShopDetail
   videos: TikTokShopVideo[]
+  /** twórcy powiązanych wideo (zagregowani z videos, sort views) */
+  creators: TikTokShopCreator[]
   /** true → on-demand enrich (cache ~2 tyg wygasł / brak wideo) */
   videosStale: boolean
 }

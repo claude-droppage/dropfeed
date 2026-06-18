@@ -10,7 +10,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY } from '@/lib/types'
-import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -393,9 +393,19 @@ export async function getTikTokShopProduct(id: string): Promise<TikTokShopProduc
   const videos: TikTokShopVideo[] = (vids ?? []).map((v) => ({
     videoId: v.video_id, url: v.url ?? undefined, coverUrl: v.cover_url ?? undefined,
     caption: v.caption ?? undefined, author: v.author ?? undefined,
+    authorAvatar: v.author_avatar ?? undefined, authorFollowers: v.author_followers ?? undefined,
     views: v.views ?? undefined, likes: v.likes ?? undefined, comments: v.comments ?? undefined,
     createdAt: v.created_at ?? undefined,
   }))
+  // twórcy: zgrupuj wideo po autorze, sumuj views, sort DESC
+  const byAuthor = new Map<string, TikTokShopCreator>()
+  for (const v of videos) {
+    if (!v.author) continue
+    const c = byAuthor.get(v.author) ?? { handle: v.author, avatar: v.authorAvatar, followers: v.authorFollowers, views: 0 }
+    c.views += v.views ?? 0
+    byAuthor.set(v.author, c)
+  }
+  const creators = [...byAuthor.values()].sort((a, b) => b.views - a.views)
   const videosStale = !p.videos_fetched_at || Date.now() - Date.parse(p.videos_fetched_at) > TT_VIDEO_STALE_MS || videos.length === 0
   return {
     detail: {
@@ -408,6 +418,7 @@ export async function getTikTokShopProduct(id: string): Promise<TikTokShopProduc
       shopTotalSold: p.shop_total_sold ?? undefined, productUrl: p.product_url ?? undefined,
     },
     videos,
+    creators,
     videosStale,
   }
 }
