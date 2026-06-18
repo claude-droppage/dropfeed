@@ -434,6 +434,8 @@ function mapWinner(r: Record<string, unknown>): ProductWinner {
     isFresh: Boolean(r.is_fresh),
     isValidated: Boolean(r.is_validated),
     isScaling: Boolean(r.is_scaling),
+    brandActiveAds: (r.active_brand_ads as number) ?? 0,
+    tier: (r.tier as 'proven' | 'fresh' | 'other') ?? 'other',
     score: Number(r.score ?? 0),
   }
 }
@@ -452,9 +454,9 @@ export async function getProductWinnersForDate(date: string): Promise<ProductWin
   return (data as Record<string, unknown>[]).map(mapWinner)
 }
 
-/** Pełna lista rise-first (live, winner-score), opcjonalnie per kraj (PL feed). */
-export async function getProductWinners(limit = 60, country?: string): Promise<ProductWinner[]> {
-  const { data, error } = await supabase.rpc('product_winners', { p_limit: limit, p_country: country ?? null })
+/** Zwycięzcy: tiered=true → kuracja 70/30 (top-N proven/fresh); false → pełny ogon rise-first. */
+export async function getProductWinners(limit = 60, country?: string, tiered = true): Promise<ProductWinner[]> {
+  const { data, error } = await supabase.rpc('product_winners', { p_limit: limit, p_country: country ?? null, p_tiered: tiered })
   if (error || !Array.isArray(data)) return []
   return (data as Record<string, unknown>[]).map(mapWinner)
 }
@@ -464,7 +466,7 @@ interface RawDetail {
   brand_name: string; store_url: string | null; ad_count: number; heat: number | null
   oldest_age: number | null; newest_age: number | null; markets: string[] | null
   formats: string[] | null
-  ads: { id: string; thumb_url: string | null; heat: number; format: AdFormat }[]
+  ads: { id: string; thumb_url: string | null; creative_url: string | null; heat: number; format: AdFormat }[]
 }
 
 export async function getProductDetail(id: string): Promise<ProductDetail | undefined> {
@@ -475,6 +477,7 @@ export async function getProductDetail(id: string): Promise<ProductDetail | unde
     id: a.id,
     emoji: nicheEmoji(r.niche),
     thumbUrl: a.thumb_url ?? undefined,
+    creativeUrl: a.creative_url ?? undefined,
     heatScore: Math.round(a.heat ?? 0),
     format: a.format,
   }))

@@ -193,6 +193,8 @@ export interface AdMini {
   emoji: string
   /** realna miniatura (R2) — gdy jest, UI pokazuje obraz zamiast emoji */
   thumbUrl?: string
+  /** kreacja (R2) — wideo .mp4 do odtworzenia w deep-dive */
+  creativeUrl?: string
   heatScore: number
   format: AdFormat
 }
@@ -242,6 +244,10 @@ export interface ProductWinner {
   isFresh: boolean
   isValidated: boolean
   isScaling: boolean
+  /** realna liczba aktywnych reklam MARKI (z reconcile) — sygnał „marka zarabia" */
+  brandActiveAds: number
+  /** tier selekcji: proven (skala+staż, wciąż aktywny) / fresh (młody gem) / other */
+  tier: 'proven' | 'fresh' | 'other'
   score: number
 }
 

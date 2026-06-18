@@ -66,6 +66,13 @@ export default function WinnerCard({ w, onOpen }: { w: ProductWinner; onOpen: ()
         </div>
         <p className="text-[13px] font-semibold text-text-hi leading-snug line-clamp-2 min-h-[2.5em]">{w.name}</p>
 
+        {/* tier */}
+        {w.tier === 'proven' ? (
+          <p className="text-[10.5px] font-semibold text-profit mt-1.5 font-mono">proven · {w.brandActiveAds} reklam marki · {w.oldestAge} dni</p>
+        ) : w.tier === 'fresh' ? (
+          <p className="text-[10.5px] font-semibold text-heat mt-1.5 font-mono">świeży · {w.oldestAge} dni</p>
+        ) : null}
+
         {/* twarde liczby */}
         <div className="flex items-center gap-x-2 gap-y-1 flex-wrap text-[11px] text-text-mid mt-2 font-mono">
           <span><b className="text-text-hi">{w.adCount}</b> aktywnych reklam</span>
