@@ -31,7 +31,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        router.push('/feed')
+        router.push('/propozycje')
         router.refresh()
       } else if (mode === 'register') {
         const { error } = await supabase.auth.signUp({
@@ -40,7 +40,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         })
         if (error) throw error
         // dev: mailer_autoconfirm → sesja od razu; proxy poprowadzi na onboarding
-        router.push('/feed')
+        router.push('/propozycje')
         router.refresh()
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
