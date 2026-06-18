@@ -72,24 +72,37 @@ export default function PropozycjeView({ data }: { data: PropozycjeResult }) {
           </div>
         ) : (
           <>
-            {/* TYP DNIA */}
-            <motion.div {...stagger(0)} className="mb-6">
-              <DayPick it={td} />
-            </motion.div>
+            {/* ── mobile: karta + wiersze ── */}
+            <div className="md:hidden">
+              <motion.div {...stagger(0)} className="mb-6">
+                <DayPick it={td} />
+              </motion.div>
+              {data.movers.length > 0 && (
+                <>
+                  <h2 className="text-[15px] font-bold text-text-hi mb-2.5">Najszybsze wzrosty</h2>
+                  <div className="flex flex-col gap-2">
+                    {data.movers.map((it, i) => (
+                      <motion.div key={it.productId} {...stagger(i + 1)}>
+                        <MoverRow it={it} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
-            {/* NAJSZYBSZE WZROSTY */}
-            {data.movers.length > 0 && (
-              <>
-                <h2 className="text-[15px] font-bold text-text-hi mb-2.5">Najszybsze wzrosty</h2>
-                <div className="flex flex-col gap-2">
-                  {data.movers.map((it, i) => (
-                    <motion.div key={it.productId} {...stagger(i + 1)}>
-                      <MoverRow it={it} />
-                    </motion.div>
-                  ))}
-                </div>
-              </>
-            )}
+            {/* ── desktop: szeroki baner + tabela ── */}
+            <div className="hidden md:block">
+              <motion.div {...stagger(0)} className="mb-7">
+                <DayPickWide it={td} />
+              </motion.div>
+              {data.movers.length > 0 && (
+                <>
+                  <h2 className="text-[16px] font-bold text-text-hi mb-3">Najszybsze wzrosty</h2>
+                  <MoverTable items={data.movers} />
+                </>
+              )}
+            </div>
 
             {/* track-record placeholder */}
             <div className="mt-6 rounded-xl border border-line bg-bg-surface px-4 py-3 text-[12px] text-text-mid font-mono">
@@ -215,6 +228,98 @@ function MoverRow({ it }: { it: PropozycjaItem }) {
         )}
       </div>
     </Link>
+  )
+}
+
+// ── desktop: szeroki baner typu dnia ────────────────────────────────────────
+function DayPickWide({ it }: { it: PropozycjaItem }) {
+  const units = dailyUnits(it)
+  return (
+    <div className="rounded-2xl p-[1.5px] bg-gradient-to-r from-profit/60 via-blue/40 to-heat/50">
+      <div className="rounded-[15px] bg-bg-surface p-5 flex gap-5 items-center">
+        <div className="w-28 h-28 rounded-xl overflow-hidden bg-bg-raised shrink-0 flex items-center justify-center text-4xl">
+          {it.imageUrl ? <img src={it.imageUrl} alt="" className="w-full h-full object-cover" /> : '🛒'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-profit bg-profit/12 px-2 py-1 rounded-md mb-2">
+            ★ Wysoki sygnał · typ dnia
+          </span>
+          <p className="text-[16px] font-semibold text-text-hi leading-snug line-clamp-2">{it.title}</p>
+          <p className="text-[13px] mt-1.5 flex items-center gap-3 flex-wrap font-mono text-text-mid">
+            {it.price != null && <span className="text-text-hi font-bold">${it.price}</span>}
+            {it.rating != null && <span className="text-heat">★ {it.rating}</span>}
+            {it.reviewCount != null && <span className="text-text-lo">{fmt(it.reviewCount)} opinii</span>}
+            <span><span className="text-profit font-bold">{fmt(it.salesVolume)}</span><span className="text-text-lo"> sprzedanych</span></span>
+          </p>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            <RankChip it={it} /><VelocityChip it={it} /><DoubleChip it={it} /><FreshChip it={it} />
+          </div>
+        </div>
+        <div className="shrink-0 flex flex-col items-end gap-3 w-44">
+          {units.length >= 2 ? (
+            <div className="flex flex-col items-end gap-1">
+              <Sparkline data={units} w={170} h={40} />
+              <span className="text-[10.5px] text-text-lo font-mono">dzienne sztuki</span>
+            </div>
+          ) : (
+            <p className="text-[11px] text-text-lo italic text-right">zbieram od dziś — wykres przy ≥2 dniach</p>
+          )}
+          <Link href={`/shop/${it.productId}`} className="w-full flex items-center justify-center gap-1.5 bg-profit/15 text-profit text-[13px] font-semibold py-2.5 rounded-xl hover:bg-profit/25 transition-colors">
+            Zobacz szczegóły <ChevronRight size={15} />
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── desktop: tabela najszybszych wzrostów ────────────────────────────────────
+function MoverTable({ items }: { items: PropozycjaItem[] }) {
+  return (
+    <div className="rounded-2xl border border-line overflow-hidden">
+      <table className="w-full border-collapse text-left">
+        <thead>
+          <tr className="bg-bg-surface text-[11px] uppercase tracking-wide text-text-lo">
+            <th className="font-semibold px-4 py-3 w-8">#</th>
+            <th className="font-semibold px-4 py-3">Produkt</th>
+            <th className="font-semibold px-4 py-3">Sygnał</th>
+            <th className="font-semibold px-4 py-3 text-right whitespace-nowrap">Sprzedane łącznie</th>
+            <th className="font-semibold px-4 py-3 text-right whitespace-nowrap">Sprzedane / 7 dni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((it, i) => (
+            <tr key={it.productId}
+              onClick={() => { window.location.href = `/shop/${it.productId}` }}
+              className="border-t border-line bg-bg-void hover:bg-bg-surface transition-colors cursor-pointer">
+              <td className="px-4 py-3 text-sm font-extrabold text-text-lo font-mono">{i + 1}</td>
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-10 h-10 rounded-[9px] shrink-0 overflow-hidden flex items-center justify-center text-lg bg-bg-raised">
+                    {it.imageUrl ? <img src={it.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : '🛒'}
+                  </span>
+                  <span className="min-w-0 max-w-[360px]">
+                    <span className="block text-[13px] font-semibold text-text-hi truncate">{it.title}</span>
+                    {it.price != null && <span className="block text-[11px] text-text-lo font-mono">${it.price}</span>}
+                  </span>
+                </div>
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <RankChip it={it} /><VelocityChip it={it} /><DoubleChip it={it} /><FreshChip it={it} />
+                </div>
+              </td>
+              <td className="px-4 py-3 text-right text-[13px] text-text-hi font-mono whitespace-nowrap">{fmt(it.salesVolume)}</td>
+              <td className="px-4 py-3 text-right whitespace-nowrap">
+                {it.sold7d != null
+                  ? <span className="text-[13px] font-bold text-profit font-mono">{fmt(it.sold7d)}</span>
+                  : <span className="text-[11px] text-text-lo italic">zbieram od dziś</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
