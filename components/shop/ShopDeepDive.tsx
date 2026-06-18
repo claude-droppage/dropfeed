@@ -63,10 +63,12 @@ export default function ShopDeepDive({ initial, productId }: { initial: TikTokSh
           <Stat v={d.shopVideoCount != null ? fmt(d.shopVideoCount) : '—'} k="wideo sklepu" />
         </div>
 
-        {d.productUrl && (
-          <a href={d.productUrl} target="_blank" rel="noopener noreferrer"
+        {/* Profil sprzedawcy na TikToku (globalnie dostępny) — sklep TikTok Shop jest
+            zablokowany regionem US, więc z PL i tak by się nie otworzył. */}
+        {d.shopName && (
+          <a href={`https://www.tiktok.com/search?q=${encodeURIComponent(d.shopName)}`} target="_blank" rel="noopener noreferrer"
             className="mt-4 flex items-center justify-center gap-2 bg-profit/15 text-profit text-sm font-semibold py-2.5 rounded-xl hover:bg-profit/25 transition-colors">
-            Otwórz w TikTok Shop <ExternalLink size={15} />
+            Otwórz profil na TikToku <ExternalLink size={15} />
           </a>
         )}
 
