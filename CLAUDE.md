@@ -8,6 +8,16 @@ Ten plik czyta Claude Code przy każdej sesji. Zawiera decyzje techniczne, któr
 
 Mobilna PWA typu "Tinder/Pinterest/TikTok dla produktów dropshippingowych i inspiracji reklamowych". Użytkownik swipe'uje produkty i kreacje konkurencji, zapisuje do boardów, widzi heat score (sygnał, że produkt zarabia). Pełny opis: `PRD.md`.
 
+## Pozycjonowanie (rdzeń produktu)
+
+Rdzeń SwipeSpy = zakładka Propozycje: do 20 najlepszych codziennych typów na TikTok Shop + osobno typy z reklam FB/PL. Świeże, nowe wzrosty. Nie konkurujemy rozmiarem bazy — konkurujemy selekcją, świeżością i transparentnym powodem przy każdym typie. Moat: fuzja FB×TikTok (podwójny sygnał) + lokalizacja PL po stronie reklam. Twarda zasada: realne sztuki/rank, nigdy $.
+
+**Weryfikacja danych aktora (2026-06-18, na realnym outputcie `pro100chok/...usage`):**
+- `salesVolume` = **skumulowana liczba sprzedanych sztuk (lifetime), DOKŁADNA — nie zaokrąglona** (1/85 podzielne przez 100; delty typu +1303/dzień są granularne). Wyświetlane „861,4 tys." to tylko format UI z `861419`.
+- **% wzrostu od skumulowanego totalu = SZUM** (mała delta na ogromnej bazie → ~0,2%). **Nie używać %** jako sygnału ruchu.
+- `searchRank` (best_sellers) **NIE jest porządkiem po sztukach** — to własny ranking relevance/momentum TikToka (rank 1 miał sv=11, rank 5 sv=128). Dlatego **rank-delta = główny, odporny na zaokrąglenie sygnał ruchu** (PRIMARY). Velocity sztukowe (`sold_7d`, wartości bezwzględne — bo dokładne) = SECONDARY, dopiero przy ≥7 dniach historii.
+- `exactSoldCount`/`soldLast30Days` często `None` w trybie search → fallback na `salesVolume`. Aktor bywa **flaky w search (zwraca 0)** → dzienny silnik musi mieć retry.
+
 ## Aktualny etap
 
 **Launch-prep — branding + landing + domena (po Etapie 3 fazie 1). NA PRODZIE (`swipespy.io`).**
