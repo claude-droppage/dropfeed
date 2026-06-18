@@ -13,7 +13,8 @@
     "logos": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/logos.ts",
     "scrape": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/scrape.ts",
     "reconcile": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/reconcile.ts",
-    "tiktok:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/tiktok-snapshot.ts"
+    "tiktok:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/tiktok-snapshot.ts",
+    "winners:snapshot": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/winners-snapshot.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

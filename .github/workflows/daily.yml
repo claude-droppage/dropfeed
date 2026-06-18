@@ -36,5 +36,7 @@ jobs:
         run: npm run rehost
       - name: Logo nowych marek
         run: npm run logos
+      - name: Zwycięzcy FB dnia (top-10 → kalendarz, bez dodatkowego scrape'a)
+        run: npm run winners:snapshot
       - name: TikTok Shop snapshot (dzienny sold_count → trend/wzrost)
         run: npm run tiktok:snapshot
