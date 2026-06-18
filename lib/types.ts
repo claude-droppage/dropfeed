@@ -326,7 +326,12 @@ export interface ShopFeed {
 
 export interface PropozycjeMeta {
   updatedDay?: string
+  /** liczba perełek z realnym sygnałem (cała pula kwalifikujących) */
   qualifying: number
+  /** liczba typów realnie pokazanych dziś (≤ limit) — to liczy się w nagłówku */
+  shown: number
+  /** rozmiar śledzonej biblioteki (aktywne, nie-wykluczone) */
+  tracked: number
   activeCount: number
   freshCount: number
 }

@@ -39,7 +39,7 @@ export default function PropozycjeView({ data }: { data: PropozycjeResult }) {
         </div>
         <div className="flex items-center gap-1.5 mt-2 text-[11px] text-text-lo font-mono">
           <span className="w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
-          zaktualizowano {data.meta.updatedDay ? 'dziś' : '—'} · {data.meta.freshCount} świeżych · {data.meta.qualifying} z sygnałem
+          zaktualizowano {data.meta.updatedDay ? 'dziś' : '—'} · {data.meta.shown} typów dziś · {data.meta.tracked} śledzonych
         </div>
 
         {/* toggle pod-feedów */}

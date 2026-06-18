@@ -310,7 +310,7 @@ export async function getTikTokShopFeed(): Promise<ShopFeed> {
 }
 
 export async function getPropozycje(): Promise<PropozycjeResult> {
-  const empty: PropozycjeResult = { typDnia: null, movers: [], trackRecord: null, meta: { qualifying: 0, activeCount: 0, freshCount: 0 } }
+  const empty: PropozycjeResult = { typDnia: null, movers: [], trackRecord: null, meta: { qualifying: 0, shown: 0, tracked: 0, activeCount: 0, freshCount: 0 } }
   const { data, error } = await supabase.rpc('propozycje_tiktok', { p_region: 'us' })
   if (error || !data) return empty
   const d = data as Record<string, unknown>
@@ -322,6 +322,8 @@ export async function getPropozycje(): Promise<PropozycjeResult> {
     meta: {
       updatedDay: (m.updated_day as string) ?? undefined,
       qualifying: (m.qualifying as number) ?? 0,
+      shown: (m.shown as number) ?? 0,
+      tracked: (m.tracked_count as number) ?? 0,
       activeCount: (m.active_count as number) ?? 0,
       freshCount: (m.fresh_count as number) ?? 0,
     },

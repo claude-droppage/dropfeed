@@ -63,7 +63,7 @@ export async function getTikTokShopProduct(_id: string) {
 }
 // Propozycje = realny silnik (snapshoty) — mock zwraca pusty, uczciwy stan.
 export async function getPropozycje(): Promise<import('@/lib/types').PropozycjeResult> {
-  return { typDnia: null, movers: [], trackRecord: null, meta: { qualifying: 0, activeCount: 0, freshCount: 0 } }
+  return { typDnia: null, movers: [], trackRecord: null, meta: { qualifying: 0, shown: 0, tracked: 0, activeCount: 0, freshCount: 0 } }
 }
 export async function getTikTokShopFeed(): Promise<import('@/lib/types').ShopFeed> {
   return { gems: [], all: [], counts: { tracked: 0, gems: 0 } }
