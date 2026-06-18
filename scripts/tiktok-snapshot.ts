@@ -47,6 +47,11 @@ const CATEGORIES = ['beauty', 'kitchen', 'gadgets', 'home', 'tumbler']
 const MAX_PER_CAT = 25
 const ARCHIVE_AFTER_DAYS = 14
 
+// Wykluczenie kategorii konsumpcyjnych (Część C) — źródło prawdy listy słów.
+// Mirror w migracji 0020 (backfill) + CLAUDE.md. Dopasowanie po tytule (US → EN+PL).
+const EXCL_RE = /\b(cream|serum|ointment|balm|lotion|supplement|vitamin|collagen|capsule|capsules|gummies|gummy|skincare|krem|masc|balsam|suplement|witamina|kolagen)\b|face ?mask/i
+const isExcluded = (title: string | null) => EXCL_RE.test((title || '').toLowerCase())
+
 const toInt = (x: unknown) => { const n = parseInt(String(x ?? '').replace(/[^0-9]/g, ''), 10); return Number.isFinite(n) ? n : null }
 const toNum = (x: unknown) => { const n = Number(x); return Number.isFinite(n) ? n : null }
 const img = (it: Record<string, unknown>) =>
@@ -109,17 +114,21 @@ async function main() {
   // 2) upsert produktów (un-archive widzianych) + zbierz snapshoty
   const products: Record<string, unknown>[] = []
   const snaps: Record<string, unknown>[] = []
+  let excludedCount = 0
   for (const [pid, { it, rank, cat }] of best) {
     const sales = toInt(it.salesVolume) ?? toInt(it.exactSoldCount)
+    const excl = isExcluded(it.title as string)
+    if (excl) excludedCount++
     products.push({
       product_id: pid, region: 'us', query: cat, rank,
       title: (it.title as string) ?? null, image_url: img(it), product_url: (it.productUrl as string) ?? null,
       current_price: toNum(it.currentPrice ?? it.price), original_price: toNum(it.originalPrice),
       sales_volume: sales, rating: toNum(it.rating), review_count: toInt(it.reviewCount),
       seller_name: (it.sellerName as string) ?? null,
-      last_seen_at: nowIso, archived: false, updated_at: nowIso,
+      last_seen_at: nowIso, archived: false, excluded: excl, updated_at: nowIso,
     })
-    if (sales != null) snaps.push({ product_id: pid, day: today, sales_volume: sales, rank, category: cat })
+    // wykluczone pomijamy w snapshocie (czysty aktywny zestaw, mniejszy koszt)
+    if (sales != null && !excl) snaps.push({ product_id: pid, day: today, sales_volume: sales, rank, category: cat })
   }
   for (let i = 0; i < products.length; i += 200) {
     const { error } = await supabase.from('tiktok_shop_products').upsert(products.slice(i, i + 200), { onConflict: 'product_id' })
@@ -129,7 +138,7 @@ async function main() {
     const { error } = await supabase.from('tiktok_shop_snapshot').upsert(snaps.slice(i, i + 500), { onConflict: 'product_id,day' })
     if (error) { console.error('✗ upsert snapshot:', error.message); process.exit(1) }
   }
-  console.log(`Zaktualizowano/dodano ${products.length} produktów · snapshot ${today}: ${snaps.length} wierszy`)
+  console.log(`Zaktualizowano/dodano ${products.length} produktów (${excludedCount} wykluczonych) · snapshot ${today}: ${snaps.length} wierszy`)
 
   // 3) archiwizacja zwietrzałych (niewidziane >14 dni)
   const cutoff = new Date(Date.now() - ARCHIVE_AFTER_DAYS * 86400_000).toISOString()

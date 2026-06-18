@@ -18,6 +18,10 @@ Rdzeń SwipeSpy = zakładka Propozycje: do 20 najlepszych codziennych typów na 
 - `searchRank` (best_sellers) **NIE jest porządkiem po sztukach** — to własny ranking relevance/momentum TikToka (rank 1 miał sv=11, rank 5 sv=128). Dlatego **rank-delta = główny, odporny na zaokrąglenie sygnał ruchu** (PRIMARY). Velocity sztukowe (`sold_7d`, wartości bezwzględne — bo dokładne) = SECONDARY, dopiero przy ≥7 dniach historii.
 - `exactSoldCount`/`soldLast30Days` często `None` w trybie search → fallback na `salesVolume`. Aktor bywa **flaky w search (zwraca 0)** → dzienny silnik musi mieć retry.
 
+**Perełki = NOWE + ROSNĄCE (nie całościowe bestsellery).** Ranking po wzroście **względnym** + świeżości PONAD absolutny lifetime, z karą za nasycenie: rank-delta > sold_7d > sold_24h (+ świeżość `tracking_started_at < 7 dni` + podwójny sygnał FB×TikTok). Nasyceni giganci (lifetime > ~100k = „znani winnerzy", teren WinningHunter/Kalodata) NIE są perełkami — tylko w ogonie „Wszystkie produkty" i pod sortem „Bestsellery". Dzień 1 (brak rank-delta/sold_7d): selekcja na `sold_24h` + świeżość + podwójny — NIE czekamy na rank-delta do renderu, NIGDY nie dopychamy do 20 bez sygnału. Logika w `tiktok_scored` (`is_gem`/`is_saturated`/`gem_score`); konsumują ją `propozycje_tiktok` i `tiktok_shop_feed`.
+
+**Wykluczenie kategorii konsumpcyjnych (KONFIGUROWALNE).** Suplementy/kremy/maści/kosmetyki nie wchodzą do perełek, feedu Shop ani Propozycji (dopasowanie po tytule, dane US → EN+PL). Lista słów (źródło prawdy: `EXCL_RE` w `scripts/tiktok-snapshot.ts`, mirror w migracji 0020 + RPC filtruje `not excluded`): `cream, serum, ointment, balm, lotion, supplement, vitamin, collagen, capsule(s), gummies/gummy, skincare, face mask` + PL `krem, maść, balsam, suplement, witamina, kolagen`. Aby zmienić — edytuj `EXCL_RE` i przebackfilluj kolumnę `tiktok_shop_products.excluded`. Wykluczone zostają w bazie (flaga `excluded`), ale są pomijane w dziennym snapshocie.
+
 ## Aktualny etap
 
 **Launch-prep — branding + landing + domena (po Etapie 3 fazie 1). NA PRODZIE (`swipespy.io`).**
