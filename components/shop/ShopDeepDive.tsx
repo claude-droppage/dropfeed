@@ -76,26 +76,58 @@ export default function ShopDeepDive({ initial, productId }: { initial: TikTokSh
           <p className="text-text-lo text-[11px] mt-0.5 mb-3">Dopasowane po nazwie produktu — nie precyzyjne linkowanie.</p>
 
           {loading ? (
-            <p className="text-text-lo text-sm py-6 text-center">Szukam wideo…</p>
-          ) : view.videos.length === 0 ? (
-            <p className="text-text-lo text-sm py-6 text-center">Brak dopasowanych wideo.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {view.videos.slice(0, 4).map((v) => (
-                <div key={v.videoId}>
-                  <iframe
-                    src={`https://www.tiktok.com/embed/v2/${v.videoId}`}
-                    className="w-full rounded-xl border border-line bg-bg-surface"
-                    style={{ height: 560 }}
-                    allow="encrypted-media"
-                    title={v.caption || v.videoId}
-                  />
-                  <p className="text-[11px] text-text-mid mt-1.5">
-                    ▶ {fmt(v.views)} · ❤ {fmt(v.likes)}{v.author ? ` · @${v.author}` : ''}
-                  </p>
-                </div>
-              ))}
+            <div className="flex items-center justify-center gap-3 py-10 text-text-lo text-sm">
+              <span className="w-5 h-5 rounded-full border-2 border-line border-t-heat animate-spin" />
+              szukam wideo…
             </div>
+          ) : view.videos.length === 0 ? (
+            <p className="text-text-lo text-sm py-6 text-center">Brak trafnych wideo.</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {view.videos.slice(0, 4).map((v) => (
+                  <div key={v.videoId}>
+                    <iframe
+                      src={`https://www.tiktok.com/embed/v2/${v.videoId}`}
+                      className="w-full rounded-xl border border-line bg-bg-surface"
+                      style={{ height: 560 }}
+                      allow="encrypted-media"
+                      title={v.caption || v.videoId}
+                    />
+                    <p className="text-[11px] text-text-mid mt-1.5">
+                      ▶ {fmt(v.views)} · ❤ {fmt(v.likes)}{v.author ? ` · @${v.author}` : ''}
+                    </p>
+                    {v.url && (
+                      <a href={v.url} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-heat mt-1 hover:underline">
+                        Otwórz na TikToku <ExternalLink size={12} />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Twórcy tych wideo */}
+              {view.creators.length > 0 && (
+                <div className="mt-7">
+                  <h3 className="text-text-hi text-[14px] font-bold mb-3">Twórcy tych wideo</h3>
+                  <div className="flex flex-col gap-2">
+                    {view.creators.slice(0, 6).map((c) => (
+                      <div key={c.handle} className="flex items-center gap-3 bg-bg-surface border border-line rounded-xl px-3 py-2">
+                        <span className="w-9 h-9 rounded-full overflow-hidden bg-bg-raised shrink-0 flex items-center justify-center text-text-lo text-xs">
+                          {c.avatar ? <img src={c.avatar} alt="" className="w-full h-full object-cover" /> : '👤'}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-text-hi truncate">@{c.handle}</p>
+                          <p className="text-[11px] text-text-lo">{c.followers != null ? `${fmt(c.followers)} obserw.` : ''}</p>
+                        </div>
+                        <span className="text-[12px] font-semibold text-profit whitespace-nowrap">▶ {fmt(c.views)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
