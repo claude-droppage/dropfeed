@@ -10,7 +10,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY } from '@/lib/types'
-import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -267,6 +267,49 @@ export async function getTikTokShop(market: ShopMarket): Promise<TikTokShopResul
     creatorsCount: (r.creators_count as number) ?? undefined,
   }))
   return { market: 'US', state: 'live', items }
+}
+
+// Propozycje (rdzeń) — RPC propozycje_tiktok zwraca gotowy jsonb. Mapujemy snake→camel.
+function mapPropozycja(r: Record<string, unknown>): PropozycjaItem {
+  return {
+    productId: r.product_id as string,
+    title: (r.title as string) ?? '',
+    imageUrl: (r.image_url as string) ?? undefined,
+    productUrl: (r.product_url as string) ?? undefined,
+    price: r.price != null ? Number(r.price) : undefined,
+    rating: r.rating != null ? Number(r.rating) : undefined,
+    reviewCount: (r.review_count as number) ?? undefined,
+    salesVolume: (r.sales_volume as number) ?? undefined,
+    rank: (r.rank as number) ?? undefined,
+    rankDelta: (r.rank_delta as number) ?? null,
+    sold24h: (r.sold_24h as number) ?? null,
+    sold7d: r.sold_7d != null ? Number(r.sold_7d) : null,
+    nSnaps: (r.n_snaps as number) ?? 0,
+    isDouble: Boolean(r.is_double),
+    adCount: (r.ad_count as number) ?? 0,
+    isFresh: Boolean(r.is_fresh),
+    daysTracked: (r.days_tracked as number) ?? 0,
+    series: (r.series as { date: string; daily_units: number | null }[]) ?? null,
+  }
+}
+
+export async function getPropozycje(): Promise<PropozycjeResult> {
+  const empty: PropozycjeResult = { typDnia: null, movers: [], trackRecord: null, meta: { qualifying: 0, activeCount: 0, freshCount: 0 } }
+  const { data, error } = await supabase.rpc('propozycje_tiktok', { p_region: 'us' })
+  if (error || !data) return empty
+  const d = data as Record<string, unknown>
+  const m = (d.meta ?? {}) as Record<string, unknown>
+  return {
+    typDnia: d.typ_dnia ? mapPropozycja(d.typ_dnia as Record<string, unknown>) : null,
+    movers: Array.isArray(d.movers) ? (d.movers as Record<string, unknown>[]).map(mapPropozycja) : [],
+    trackRecord: (d.track_record as string) ?? null,
+    meta: {
+      updatedDay: (m.updated_day as string) ?? undefined,
+      qualifying: (m.qualifying as number) ?? 0,
+      activeCount: (m.active_count as number) ?? 0,
+      freshCount: (m.fresh_count as number) ?? 0,
+    },
+  }
 }
 
 const NICHE_EMOJI: Record<string, string> = {

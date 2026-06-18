@@ -2,15 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Flame, Package, Store, Bookmark, User } from 'lucide-react'
+import { Sparkles, Flame, Package, Store, Bookmark } from 'lucide-react'
 import { pl } from '@/lib/i18n/pl'
 
 const links = [
-  { href: '/feed',     label: pl.nav.feed,     Icon: Flame },
-  { href: '/products', label: pl.nav.products, Icon: Package },
-  { href: '/shop',     label: pl.nav.shop,     Icon: Store },
-  { href: '/boards',   label: pl.nav.boards,   Icon: Bookmark },
-  { href: '/profile',  label: pl.nav.profile,  Icon: User },
+  { href: '/propozycje', label: pl.nav.propozycje, Icon: Sparkles },
+  { href: '/feed',       label: pl.nav.feed,       Icon: Flame },
+  { href: '/products',   label: pl.nav.products,   Icon: Package },
+  { href: '/shop',       label: pl.nav.shop,       Icon: Store },
+  { href: '/boards',     label: pl.nav.boards,     Icon: Bookmark },
 ] as const
 
 export default function BottomNav() {

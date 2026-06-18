@@ -14,6 +14,7 @@
   --heat:      #EF9F27;   /* amber: heat score, CTA, winner signal */
   --heat-deep: #412402;   /* amber pill background */
   --profit:    #9FE1CB;   /* mint: scaling / growth signal ONLY — not money */
+  --blue:      #7DA8F5;   /* blue: podwójny sygnał FB×TikTok / krzyżowy */
   --line:      #26262C;   /* borders */
 }
 
@@ -33,6 +34,7 @@
   --color-heat:      var(--heat);
   --color-heat-deep: var(--heat-deep);
   --color-profit:    var(--profit);
+  --color-blue:      var(--blue);
   --color-line:      var(--line);
 
   /* Border radius shortcuts */

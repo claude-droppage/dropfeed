@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/proxy'
 
-const PROTECTED = ['/feed', '/boards', '/discover', '/profile', '/onboarding']
+const PROTECTED = ['/propozycje', '/feed', '/boards', '/discover', '/profile', '/onboarding']
 const AUTH_PAGES = ['/login', '/register'] // reset-password celowo pomijamy (sesja recovery)
 
 // Proxy (Next 16): odświeża sesję + bramki auth (wszystko za logowaniem).
@@ -21,7 +21,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // zalogowany na ekranie logowania/rejestracji lub landingu → feed
-  if (user && (AUTH_PAGES.includes(path) || path === '/')) return go('/feed')
+  if (user && (AUTH_PAGES.includes(path) || path === '/')) return go('/propozycje')
   // niezalogowany na chronionej trasie → login ("/" jest publiczny — landing)
   if (!user && isProtected) return go('/login')
   // onboarding-gate jest server-side (app/(app)/layout.tsx + app/onboarding),

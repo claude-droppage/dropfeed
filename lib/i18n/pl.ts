@@ -26,6 +26,7 @@ export const pl = {
     },
   },
   nav: {
+    propozycje: 'Propozycje',
     feed: 'Reklamy',
     products: 'Produkty',
     shop: 'Shop',

@@ -286,6 +286,47 @@ export interface TikTokShopDetail {
   productUrl?: string
 }
 
+// ── Propozycje (rdzeń produktu) — wynik RPC propozycje_tiktok ──────────────
+export interface PropozycjaItem {
+  productId: string
+  title: string
+  imageUrl?: string
+  productUrl?: string
+  price?: number
+  rating?: number
+  reviewCount?: number
+  salesVolume?: number
+  rank?: number
+  /** skok rankingu (PRIMARY sygnał; null gdy <2 snapshoty z rank) */
+  rankDelta?: number | null
+  sold24h?: number | null
+  sold7d?: number | null
+  nSnaps: number
+  /** podwójny sygnał FB×TikTok (pewne dopasowanie marki) */
+  isDouble: boolean
+  adCount: number
+  /** śledzony <7 dni */
+  isFresh: boolean
+  daysTracked: number
+  /** seria dziennych NOWYCH sztuk do sparkline (null gdy <2 snapshoty) */
+  series?: { date: string; daily_units: number | null }[] | null
+}
+
+export interface PropozycjeMeta {
+  updatedDay?: string
+  qualifying: number
+  activeCount: number
+  freshCount: number
+}
+
+export interface PropozycjeResult {
+  typDnia: PropozycjaItem | null
+  movers: PropozycjaItem[]
+  /** track-record (placeholder do czasu historii ≥14 dni) */
+  trackRecord: string | null
+  meta: PropozycjeMeta
+}
+
 export interface TikTokShopProductView {
   detail: TikTokShopDetail
   videos: TikTokShopVideo[]

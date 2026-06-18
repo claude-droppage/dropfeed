@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Flame, Package, Store, Bookmark, User } from 'lucide-react'
+import { Sparkles, Flame, Package, Store, Bookmark, User } from 'lucide-react'
 import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 import { pl } from '@/lib/i18n/pl'
 
 const NAV = [
+  { href: '/propozycje', label: pl.nav.propozycje, Icon: Sparkles },
   { href: '/feed', label: pl.nav.feed, Icon: Flame },
   { href: '/products', label: pl.nav.products, Icon: Package },
   { href: '/shop', label: pl.nav.shop, Icon: Store },
