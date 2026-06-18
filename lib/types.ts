@@ -310,6 +310,18 @@ export interface PropozycjaItem {
   daysTracked: number
   /** seria dziennych NOWYCH sztuk do sparkline (null gdy <2 snapshoty) */
   series?: { date: string; daily_units: number | null }[] | null
+  // pola feedu /shop (Część D) — opcjonalne, wypełniane przez tiktok_shop_feed
+  isSaturated?: boolean
+  isGem?: boolean
+  /** dominujący sygnał wiersza: 'rank' | 'fresh' | 'double' | 'rise' */
+  signal?: 'rank' | 'fresh' | 'double' | 'rise'
+}
+
+export interface ShopFeed {
+  gems: PropozycjaItem[]
+  /** pełny aktywny zestaw (minus excluded), rise-first */
+  all: PropozycjaItem[]
+  counts: { tracked: number; gems: number }
 }
 
 export interface PropozycjeMeta {

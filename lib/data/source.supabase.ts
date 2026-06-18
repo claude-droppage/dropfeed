@@ -10,7 +10,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY } from '@/lib/types'
-import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult, ShopFeed } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -290,6 +290,22 @@ function mapPropozycja(r: Record<string, unknown>): PropozycjaItem {
     isFresh: Boolean(r.is_fresh),
     daysTracked: (r.days_tracked as number) ?? 0,
     series: (r.series as { date: string; daily_units: number | null }[]) ?? null,
+    isSaturated: r.is_saturated != null ? Boolean(r.is_saturated) : undefined,
+    isGem: r.is_gem != null ? Boolean(r.is_gem) : undefined,
+    signal: (r.signal as 'rank' | 'fresh' | 'double' | 'rise') ?? undefined,
+  }
+}
+
+export async function getTikTokShopFeed(): Promise<ShopFeed> {
+  const empty: ShopFeed = { gems: [], all: [], counts: { tracked: 0, gems: 0 } }
+  const { data, error } = await supabase.rpc('tiktok_shop_feed', { p_region: 'us' })
+  if (error || !data) return empty
+  const d = data as Record<string, unknown>
+  const c = (d.counts ?? {}) as Record<string, unknown>
+  return {
+    gems: Array.isArray(d.gems) ? (d.gems as Record<string, unknown>[]).map(mapPropozycja) : [],
+    all: Array.isArray(d.all) ? (d.all as Record<string, unknown>[]).map(mapPropozycja) : [],
+    counts: { tracked: (c.tracked as number) ?? 0, gems: (c.gems as number) ?? 0 },
   }
 }
 
