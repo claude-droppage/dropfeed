@@ -1,14 +1,18 @@
 /**
- * Dzienny snapshot sprzedaży TikTok Shop (jak FB brand_daily_snapshot).
+ * Dzienny silnik Propozycji TikTok Shop (rdzeń produktu).
  *
- * BOUNDED: scrapuje TYLKO nasz zestaw (produkty już w tiktok_shop_products),
- * NIE całe TikTok Shop. Jeden run Apify (scrapeType=product, wszystkie URL-e na
- * raz) → odświeża sales_volume/exact_sold + wpisuje wiersz do tiktok_shop_snapshot
- * (product_id, current_date, sales_volume). Trend/sparkline + wzrost% liczy potem
- * RPC tiktok_shop_bestsellers ze snapshotów (≥2 dni).
+ * Jeden best_sellers scrape per kategoria (region=us) = DISCOVERY + SNAPSHOT + RANK:
+ *  • upsert tiktok_shop_products po product_id: istniejący → update sold/price/rank/
+ *    last_seen_at (+ un-archive); nowy → insert + tracking_started_at=dziś (default).
+ *  • snapshot: (product_id, day, sales_volume, rank, category) — rank-delta to PRIMARY
+ *    sygnał ruchu (searchRank = momentum TikToka, odporny na zaokrąglenie). salesVolume
+ *    = lifetime sztuki (dokładne) → velocity sztukowe tylko bezwzględne, NIE % od totalu.
+ *  • niewidziany >14 dni → archived=true (zostaje z historią, wypada z dziennego scrape).
  *
- * Koszt = jeden dzienny scrape naszej listy (~$0.003/produkt zmierzone).
- * Uruchamianie: npm run tiktok:snapshot [-- --limit N]   (N produktów, do testów)
+ * Aktor bywa flaky w search (zwraca 0) → retry per kategoria. Koszt = jeden tani scrape
+ * listy/dzień (~$0.0002/szt zmierzone). NIE usuwamy produktów. USA only.
+ *
+ * Uruchamianie: npm run tiktok:snapshot
  * Sekrety: APIFY_TOKEN + SUPABASE_SERVICE_ROLE_KEY z .env.local / GH Actions.
  */
 
@@ -35,89 +39,107 @@ const { NEXT_PUBLIC_SUPABASE_URL: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: SERVI
 for (const [k, v] of Object.entries({ SUPABASE_URL, SERVICE_ROLE, APIFY_TOKEN })) {
   if (!v) { console.error(`✗ Brak ${k} w .env.local`); process.exit(1) }
 }
-const li = process.argv.indexOf('--limit')
-const LIMIT = li !== -1 ? parseInt(process.argv[li + 1], 10) : Infinity
 
 const supabase = createClient(SUPABASE_URL!, SERVICE_ROLE!, { auth: { persistSession: false, autoRefreshToken: false } })
 const ACTOR = 'pro100chok~tiktok-shop-scraper-usage'
+// kategorie = nasz aktywny zestaw (te same query co przy seedzie T2). USA only.
+const CATEGORIES = ['beauty', 'kitchen', 'gadgets', 'home', 'tumbler']
+const MAX_PER_CAT = 25
+const ARCHIVE_AFTER_DAYS = 14
+
 const toInt = (x: unknown) => { const n = parseInt(String(x ?? '').replace(/[^0-9]/g, ''), 10); return Number.isFinite(n) ? n : null }
 const toNum = (x: unknown) => { const n = Number(x); return Number.isFinite(n) ? n : null }
+const img = (it: Record<string, unknown>) =>
+  (Array.isArray(it.imageUrls) && it.imageUrls[0]) || it.productImageUrl || it.image_url || it.coverUrl || null
+
+// start run + poll → { items, cost }
+async function scrapeCategory(cat: string): Promise<{ items: Record<string, unknown>[]; cost: number }> {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const runRes = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${APIFY_TOKEN}`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ scrapeType: 'search', searchKeywords: [cat], sortBy: 'best_sellers', region: 'us', maxItems: MAX_PER_CAT }),
+    })
+    if (!runRes.ok) { console.error(`  ✗ ${cat} start:`, runRes.status); continue }
+    const run = (await runRes.json()).data as { id: string; defaultDatasetId: string }
+    let status = 'RUNNING'
+    for (let i = 0; i < 120; i++) {
+      await new Promise((r) => setTimeout(r, 5000))
+      const st = await (await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${APIFY_TOKEN}`)).json()
+      status = st.data.status
+      if (status !== 'RUNNING' && status !== 'READY') break
+    }
+    const fin = (await (await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${APIFY_TOKEN}`)).json()).data
+    const cost = Number(fin?.usageTotalUsd ?? 0)
+    if (status !== 'SUCCEEDED') { console.error(`  ✗ ${cat} status ${status} (próba ${attempt})`); continue }
+    const items: Record<string, unknown>[] = []
+    for (let offset = 0; ; offset += 1000) {
+      const batch = await (await fetch(`https://api.apify.com/v2/datasets/${run.defaultDatasetId}/items?token=${APIFY_TOKEN}&offset=${offset}&limit=1000`)).json() as Record<string, unknown>[]
+      items.push(...batch)
+      if (batch.length < 1000) break
+    }
+    if (items.length === 0 && attempt < 3) { console.error(`  ⟳ ${cat} zwrócił 0 — retry`); continue }
+    console.log(`  ${cat}: ${items.length} pozycji ($${cost.toFixed(4)})`)
+    return { items, cost }
+  }
+  console.error(`  ✗ ${cat}: brak danych po 3 próbach`)
+  return { items: [], cost: 0 }
+}
 
 async function main() {
-  // 1) nasz zestaw — produkty z URL-em (bounded, NIE całe TikTok Shop)
-  let q = supabase.from('tiktok_shop_products').select('product_id,product_url').eq('region', 'us').not('product_url', 'is', null)
-  if (LIMIT !== Infinity) q = q.limit(LIMIT)
-  const { data: rows, error: re } = await q
-  if (re) { console.error('✗ products:', re.message); process.exit(1) }
-  const set = (rows as { product_id: string; product_url: string }[]) ?? []
-  if (!set.length) { console.log('Brak produktów do snapshotu.'); return }
-  console.log(`Snapshot zestawu: ${set.length} produktów`)
-
-  // 2) jeden run Apify — scrapeType=product dla całej listy
-  const runRes = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${APIFY_TOKEN}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ scrapeType: 'product', productUrls: set.map((r) => r.product_url), region: 'us' }),
-  })
-  if (!runRes.ok) { console.error('✗ Apify start:', runRes.status, await runRes.text()); process.exit(1) }
-  const run = (await runRes.json()).data as { id: string; defaultDatasetId: string }
-
-  // poll (do 20 min)
-  let status = 'RUNNING'
-  for (let i = 0; i < 240; i++) {
-    await new Promise((r) => setTimeout(r, 5000))
-    const st = await (await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${APIFY_TOKEN}`)).json()
-    status = st.data.status
-    process.stdout.write(`\r  status: ${status}   `)
-    if (status !== 'RUNNING' && status !== 'READY') break
-  }
-  console.log('')
-  if (status !== 'SUCCEEDED') { console.error('✗ Apify run nie SUCCEEDED:', status); process.exit(1) }
-
-  // 3) dataset → mapowanie po productId
-  const items: Record<string, unknown>[] = []
-  for (let offset = 0; ; offset += 1000) {
-    const batch = await (await fetch(`https://api.apify.com/v2/datasets/${run.defaultDatasetId}/items?token=${APIFY_TOKEN}&offset=${offset}&limit=1000`)).json() as Record<string, unknown>[]
-    items.push(...batch)
-    if (batch.length < 1000) break
-  }
-  console.log(`Pobrano ${items.length} pozycji`)
-
-  // 4) odśwież produkty + zbierz snapshoty (metryka: salesVolume — spójna z baseline listy)
   const today = new Date().toISOString().slice(0, 10)
-  const snaps: { product_id: string; day: string; sales_volume: number }[] = []
-  let updated = 0
-  for (const it of items) {
-    const pid = String(it.productId ?? '')
-    if (!pid) continue
-    const sales = toInt(it.salesVolume) ?? toInt(it.exactSoldCount)
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
-    if (sales != null) patch.sales_volume = sales
-    if (toInt(it.exactSoldCount) != null) patch.exact_sold_count = toInt(it.exactSoldCount)
-    if (toInt(it.soldLast30Days) != null) patch.sold_last_30 = toInt(it.soldLast30Days)
-    if (toNum(it.currentPrice) != null) patch.current_price = toNum(it.currentPrice)
-    if (toNum(it.rating) != null) patch.rating = toNum(it.rating)
-    if (toInt(it.reviewCount) != null) patch.review_count = toInt(it.reviewCount)
-    if (toInt(it.shopFollowers) != null) patch.shop_followers = toInt(it.shopFollowers)
-    if (toInt(it.shopTotalSold) != null) patch.shop_total_sold = toInt(it.shopTotalSold)
-    if (toInt(it.shopVideoCount) != null) patch.shop_video_count = toInt(it.shopVideoCount)
-    const { error } = await supabase.from('tiktok_shop_products').update(patch).eq('product_id', pid)
-    if (!error) updated++
-    if (sales != null) snaps.push({ product_id: pid, day: today, sales_volume: sales })
-  }
-  console.log(`Zaktualizowano ${updated} produktów`)
+  const nowIso = new Date().toISOString()
 
-  // 5) upsert snapshotów na dziś (idempotentne — ponowny run tego samego dnia nadpisuje)
-  if (snaps.length) {
-    for (let i = 0; i < snaps.length; i += 500) {
-      const { error } = await supabase.from('tiktok_shop_snapshot').upsert(snaps.slice(i, i + 500), { onConflict: 'product_id,day' })
-      if (error) { console.error('✗ snapshot upsert:', error.message); process.exit(1) }
+  // 1) scrape per kategoria → najlepszy (min rank) wpis per produkt
+  const best = new Map<string, { it: Record<string, unknown>; rank: number; cat: string }>()
+  let totalCost = 0
+  for (const cat of CATEGORIES) {
+    const { items, cost } = await scrapeCategory(cat)
+    totalCost += cost
+    for (const it of items) {
+      const pid = String(it.productId ?? '')
+      const rank = toInt(it.searchRank) ?? 9999
+      if (!pid) continue
+      const prev = best.get(pid)
+      if (!prev || rank < prev.rank) best.set(pid, { it, rank, cat })
     }
   }
-  console.log(`Snapshot ${today}: ${snaps.length} wierszy`)
+  console.log(`Unikatowych produktów: ${best.size}`)
+  if (best.size === 0) { console.error('✗ Zero produktów — nie ruszam zapisu (chronię zestaw).'); process.exit(1) }
 
-  // 6) koszt runu
-  const fin = await (await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${APIFY_TOKEN}`)).json()
-  console.log(`Koszt runu: $${fin.data?.usageTotalUsd ?? '?'}`)
+  // 2) upsert produktów (un-archive widzianych) + zbierz snapshoty
+  const products: Record<string, unknown>[] = []
+  const snaps: Record<string, unknown>[] = []
+  for (const [pid, { it, rank, cat }] of best) {
+    const sales = toInt(it.salesVolume) ?? toInt(it.exactSoldCount)
+    products.push({
+      product_id: pid, region: 'us', query: cat, rank,
+      title: (it.title as string) ?? null, image_url: img(it), product_url: (it.productUrl as string) ?? null,
+      current_price: toNum(it.currentPrice ?? it.price), original_price: toNum(it.originalPrice),
+      sales_volume: sales, rating: toNum(it.rating), review_count: toInt(it.reviewCount),
+      seller_name: (it.sellerName as string) ?? null,
+      last_seen_at: nowIso, archived: false, updated_at: nowIso,
+    })
+    if (sales != null) snaps.push({ product_id: pid, day: today, sales_volume: sales, rank, category: cat })
+  }
+  for (let i = 0; i < products.length; i += 200) {
+    const { error } = await supabase.from('tiktok_shop_products').upsert(products.slice(i, i + 200), { onConflict: 'product_id' })
+    if (error) { console.error('✗ upsert products:', error.message); process.exit(1) }
+  }
+  for (let i = 0; i < snaps.length; i += 500) {
+    const { error } = await supabase.from('tiktok_shop_snapshot').upsert(snaps.slice(i, i + 500), { onConflict: 'product_id,day' })
+    if (error) { console.error('✗ upsert snapshot:', error.message); process.exit(1) }
+  }
+  console.log(`Zaktualizowano/dodano ${products.length} produktów · snapshot ${today}: ${snaps.length} wierszy`)
+
+  // 3) archiwizacja zwietrzałych (niewidziane >14 dni)
+  const cutoff = new Date(Date.now() - ARCHIVE_AFTER_DAYS * 86400_000).toISOString()
+  const { data: arch, error: ae } = await supabase
+    .from('tiktok_shop_products')
+    .update({ archived: true }).eq('region', 'us').eq('archived', false).lt('last_seen_at', cutoff).select('product_id')
+  if (ae) console.error('✗ archive:', ae.message)
+  else console.log(`Zarchiwizowano (>${ARCHIVE_AFTER_DAYS}d niewidziane): ${arch?.length ?? 0}`)
+
+  console.log(`KOSZT PRZEBIEGU: $${totalCost.toFixed(4)}`)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })
