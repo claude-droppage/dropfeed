@@ -35,6 +35,14 @@ Rdzeń SwipeSpy = zakładka Propozycje: do 20 najlepszych codziennych typów na 
 
 **Stan pipeline FB (diagnoza 2026-06-18):** dzienny scrape działa; był cicho blokowany 06-15/16 przez Apify `403 "Monthly usage hard limit exceeded"` (poprzedni cykl $29 wyczerpany przez początkowy duży scrape+dev), workflow mimo to świecił na zielono. Cykl resetuje się ~17. dnia mies.; 06-18 wciągnął 131 reklam, obecny cykl $1.97/$29. **Naprawione:** `scrape.ts` robi `exit(1)` gdy wszystkie kraje padną (koniec cichych failów). Apify = **STARTER $29/mc**; TikTok engine (~$0.18) + FB scrape mieszczą się, ale pilnować limitu. Patrz pamięć `dropfeed-apify-quota-trap`.
 
+**STRONA FB/REKLAMY — domknięta (zwycięzcy z reklam, migracje 0024-0026):**
+- **`product_winners(limit,country)`** = scoring zwycięzcy: `ad_count*2 + min(stores_count,10)*8 (multi-advertiser/walidacja) + max(0,momentum_delta)*5 + new_ads_7d*6 + świeżość(≤14d:+25) + cross-market(+10) − KARA za nasycenie(oldest_age>45d)`. Dedup po `offer_url` (jeden funnel/affiliate = jeden zwycięzca). Zwraca bogate wiersze (rep_video R2/rep_thumb/logo/wiek/sklep/flagi). `is_excluded_title(text)` = **jedno źródło prawdy wykluczeń w SQL** (prefix-match, łapie polską fleksję; JS mirror `EXCL_RE`).
+- **Dzienny snapshot** `products_daily_winners` (migr. 0025) + `snapshot_product_winners()` (top-10) w `daily.yml` (`npm run winners:snapshot`, PO scrape, **zero kosztu Apify**) + `product_winners_for_date()`/`winner_days()` pod kalendarz.
+- **Zakładka „Produkty"** = selektor 7 dni (DZIŚ/pon/wt…, dni bez snapshotu = uczciwy pusty) + grid zwycięzców dnia + pełna lista rise-first (live do 60). **Bogate karty `WinnerCard`**: wideo reklamy z R2 (hover-play, fallback miniatura), logo fanpage (fallback inicjały), reason chips (⌖ sklepów / ▲ +reklam/7d / ✦ nowy / 🌍), liczba aktywnych reklam, „chodzi N dni", link do sklepu (offer_url), „reklamy tego produktu"→deep-dive. BEZ Ad analysis.
+- **Pod-feed „Reklamy·PL"** w Propozycjach = `product_winners(15,'PL')` (typ dnia = najmocniejszy zwycięzca PL). Przestał być „wkrótce".
+- **Podwójny sygnał v2** (`tiktok_double_signals`): match po marce LUB domenie offer_url FB (token sprzedawcy w hoście), guard na generyki (beauty/shop/home…). Tylko pewne dopasowania (rzadkie cross-market — Dr.Melaxin trafiony).
+- **Dane kart (potwierdzone):** wideo = 322/330 aktywnych reklam video ma R2 `.mp4`; logo = 378/395 marek. Realne. Dzień 1: zwycięzcy lecą na multi-advertiser+świeżość+new_ads_7d; momentum_delta dopełnia się z dniami.
+
 **Co dalej / otwarte:**
 - **Dojrzewanie sygnałów:** rank-delta od 06-19 (2. dzień z rank), `sold_7d` ~06-24 (≥7 dni od 06-17), akceleracja (sold_7d vs poprzednie 7d) ~07-01 (≥14 dni). Track-record (perełki sprzed 14 dni wciąż rosną) — placeholder do wypełnienia po ~2 tyg.
 - **Drugi pod-feed „Reklamy · PL"** w Propozycjach = na razie „wkrótce" (logika typów z reklam FB/PL do dorobienia).
