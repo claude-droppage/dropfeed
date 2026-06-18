@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ChevronRight, User } from 'lucide-react'
-import type { PropozycjeResult, PropozycjaItem } from '@/lib/types'
+import type { PropozycjeResult, PropozycjaItem, ProductWinner } from '@/lib/types'
+import WinnerCard from '@/components/products/WinnerCard'
 
 const fmt = (n?: number | null) =>
   n == null ? '—' : n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',')} tys.` : String(Math.round(n))
@@ -14,9 +16,10 @@ function dailyUnits(it: PropozycjaItem): number[] {
   return (it.series ?? []).map((p) => p.daily_units).filter((v): v is number => v != null && v >= 0)
 }
 
-export default function PropozycjeView({ data }: { data: PropozycjeResult }) {
+export default function PropozycjeView({ data, adsWinners = [] }: { data: PropozycjeResult; adsWinners?: ProductWinner[] }) {
   const [feed, setFeed] = useState<'tiktok' | 'ads'>('tiktok')
   const reduce = useReducedMotion()
+  const router = useRouter()
   const td = data.typDnia
 
   const stagger = (i: number) =>
@@ -55,13 +58,26 @@ export default function PropozycjeView({ data }: { data: PropozycjeResult }) {
         </div>
 
         {feed === 'ads' ? (
-          <div className="rounded-2xl border border-dashed border-line px-5 py-10 text-center">
-            <div className="text-3xl mb-2">🏗️</div>
-            <p className="text-sm font-semibold text-text-hi mb-1">Wkrótce — typy z polskich reklam</p>
-            <p className="text-[12px] text-text-lo leading-relaxed max-w-sm mx-auto">
-              Drugi pod-feed: najmocniejsze produkty wyłaniane z reklam FB/PL. Łączymy go z sygnałem TikToka (podwójny sygnał) — budujemy.
-            </p>
-          </div>
+          adsWinners.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-line px-5 py-10 text-center">
+              <div className="text-3xl mb-2">🌱</div>
+              <p className="text-sm font-semibold text-text-hi mb-1">Zbieram zwycięzców z reklam PL</p>
+              <p className="text-[12px] text-text-lo leading-relaxed max-w-sm mx-auto">
+                Dziś brak produktu z wyraźnym sygnałem na rynku PL — wrócę z typami, gdy reklamy je wyłonią.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* typ dnia po stronie reklam = najmocniejszy zwycięzca */}
+              <span className="inline-flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-heat bg-heat/12 px-2 py-1 rounded-md mb-2.5">★ Typ dnia · reklamy PL</span>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {adsWinners.map((w) => <WinnerCard key={w.productId} w={w} onOpen={() => router.push(`/products/${w.productId}`)} />)}
+              </div>
+              <p className="mt-5 text-[11px] text-text-lo leading-relaxed text-center max-w-md mx-auto">
+                Zwycięzcy z reklam FB/PL — nowe i rosnące, walidowane liczbą reklamodawców. Realne reklamy i dni, nigdy przychód.
+              </p>
+            </>
+          )
         ) : !td ? (
           <div className="rounded-2xl border border-dashed border-line px-5 py-10 text-center">
             <div className="text-3xl mb-2">🌱</div>
