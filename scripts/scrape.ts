@@ -44,7 +44,7 @@ const supabase = createClient(SUPABASE_URL!, SERVICE_ROLE!, { auth: { persistSes
 const searchUrl = (q: string, cc: string) =>
   `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=${cc}&q=${encodeURIComponent(q)}&search_type=keyword_unordered&media_type=all`
 
-async function runCountry(country: string, queries: string[], count: number) {
+async function runCountry(country: string, queries: string[], count: number): Promise<boolean> {
   const input = {
     urls: queries.map((q) => ({ url: searchUrl(q, country) })),
     count, limitPerSource: Math.max(2, Math.ceil(count / queries.length)), scrapeAdDetails: true,
@@ -52,7 +52,7 @@ async function runCountry(country: string, queries: string[], count: number) {
   const res = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${APIFY_TOKEN}`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input),
   })
-  if (!res.ok) { console.error(`✗ ${country} Apify start:`, res.status, await res.text()); return }
+  if (!res.ok) { console.error(`✗ ${country} Apify start:`, res.status, await res.text()); return false }
   const run = (await res.json()).data as { id: string; defaultDatasetId: string }
 
   let status = 'RUNNING'
@@ -61,7 +61,7 @@ async function runCountry(country: string, queries: string[], count: number) {
     status = (await (await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${APIFY_TOKEN}`)).json()).data.status
     if (status !== 'RUNNING' && status !== 'READY') break
   }
-  if (status !== 'SUCCEEDED') { console.error(`✗ ${country} run:`, status); return }
+  if (status !== 'SUCCEEDED') { console.error(`✗ ${country} run:`, status); return false }
 
   const ing = await fetch(`${SUPABASE_URL}/functions/v1/ingest`, {
     method: 'POST',
@@ -69,6 +69,7 @@ async function runCountry(country: string, queries: string[], count: number) {
     body: JSON.stringify({ eventType: 'ACTOR.RUN.SUCCEEDED', resource: { defaultDatasetId: run.defaultDatasetId }, country }),
   })
   console.log(`  ${country}: ${ing.ok ? await ing.text() : 'ingest ' + ing.status}`)
+  return ing.ok
 }
 
 async function main() {
@@ -94,11 +95,16 @@ async function main() {
   const totalW = [...byCountry.keys()].reduce((s, cc) => s + (WEIGHT[cc] ?? 1), 0)
   console.log(`Dzień ${new Date().getUTCDate()} (grupa ${dayGroup}); kraje: ${[...byCountry.keys()].join(', ')}; count=${COUNT}`)
 
+  let ok = 0
   for (const [cc, queries] of byCountry) {
     const cnt = Math.max(10, Math.round((COUNT * (WEIGHT[cc] ?? 1)) / totalW))
     console.log(`→ ${cc}: ${queries.length} słów, count=${cnt}`)
-    await runCountry(cc, queries, cnt)
+    if (await runCountry(cc, queries, cnt)) ok++
   }
+  // Twardy błąd, gdy WSZYSTKIE kraje padły (np. „Monthly usage hard limit exceeded")
+  // — inaczej workflow świeci na zielono mimo zerowego ingestu (cichy fail z 06-15/16).
+  if (ok === 0) { console.error(`✗ Scrape: 0/${byCountry.size} krajów udanych — feed bez nowych reklam.`); process.exit(1) }
+  console.log(`Scrape OK: ${ok}/${byCountry.size} krajów`)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })
