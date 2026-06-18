@@ -36,3 +36,5 @@ jobs:
         run: npm run rehost
       - name: Logo nowych marek
         run: npm run logos
+      - name: TikTok Shop snapshot (dzienny sold_count → trend/wzrost)
+        run: npm run tiktok:snapshot

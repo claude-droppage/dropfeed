@@ -265,7 +265,6 @@ export async function getTikTokShop(market: ShopMarket): Promise<TikTokShopResul
     growthPct: r.growth_pct != null ? Number(r.growth_pct) : null,
     salesSeries: (r.sales_series as number[]) ?? null,
     creatorsCount: (r.creators_count as number) ?? undefined,
-    dateFrom: (r.first_live_time as string) ?? undefined,
   }))
   return { market: 'US', state: 'live', items }
 }

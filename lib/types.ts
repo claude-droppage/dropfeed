@@ -232,8 +232,6 @@ export interface TikTokShopItem {
   salesSeries?: number[] | null
   /** liczba twórców (z cache wideo; 0 gdy produkt nieotwierany) */
   creatorsCount?: number
-  /** „data od" — first_live_time (puste dopóki produkt nie enrichowany) */
-  dateFrom?: string
 }
 
 export interface TikTokShopResult {

@@ -114,7 +114,6 @@ function ShopTable({ items }: { items: TikTokShopItem[] }) {
             <th className="font-semibold px-4 py-3 whitespace-nowrap">Wzrost / trend</th>
             <th className="font-semibold px-4 py-3 text-right whitespace-nowrap">Śr. cena</th>
             <th className="font-semibold px-4 py-3 text-right whitespace-nowrap">Twórcy</th>
-            <th className="font-semibold px-4 py-3 whitespace-nowrap">Data od</th>
           </tr>
         </thead>
         <tbody>
@@ -144,22 +143,21 @@ function ShopTable({ items }: { items: TikTokShopItem[] }) {
                 <span className="text-[14px] font-bold text-profit">{it.sold}</span>
               </td>
               <td className="px-4 py-3">
-                <div className="flex items-center gap-2">
-                  {it.growthPct != null ? (
-                    <span className={`text-[12px] font-bold ${it.growthPct >= 0 ? 'text-profit' : 'text-text-mid'}`}>
-                      {it.growthPct >= 0 ? '▲' : '▼'} {Math.abs(it.growthPct)}%
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-text-lo">—</span>
-                  )}
-                  {it.salesSeries && it.salesSeries.length >= 2 && (
+                {it.salesSeries && it.salesSeries.length >= 2 ? (
+                  <div className="flex items-center gap-2">
+                    {it.growthPct != null && (
+                      <span className={`text-[12px] font-bold ${it.growthPct >= 0 ? 'text-profit' : 'text-text-mid'}`}>
+                        {it.growthPct >= 0 ? '▲' : '▼'} {Math.abs(it.growthPct)}%
+                      </span>
+                    )}
                     <Sparkline data={it.salesSeries} />
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-text-lo italic">zbieramy dane…</span>
+                )}
               </td>
               <td className="px-4 py-3 text-right text-[13px] text-text-hi whitespace-nowrap">{it.price ?? '—'}</td>
               <td className="px-4 py-3 text-right text-[13px] text-text-hi">{it.creatorsCount != null && it.creatorsCount > 0 ? it.creatorsCount : '—'}</td>
-              <td className="px-4 py-3 text-[12px] text-text-mid whitespace-nowrap">{fmtDate(it.dateFrom)}</td>
             </tr>
           ))}
         </tbody>
@@ -184,12 +182,3 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 const fmtNum = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',')} tys.` : String(n))
-
-function fmtDate(d?: string): string {
-  if (!d) return '—'
-  // first_live_time bywa ISO lub unix (sekundy); spróbuj sparsować
-  const asNum = Number(d)
-  const date = Number.isFinite(asNum) && asNum > 1e9 ? new Date(asNum * 1000) : new Date(d)
-  if (isNaN(date.getTime())) return '—'
-  return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })
-}
