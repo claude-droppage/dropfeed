@@ -24,6 +24,26 @@ Rdzeń SwipeSpy = zakładka Propozycje: do 20 najlepszych codziennych typów na 
 
 ## Aktualny etap
 
+**RDZEŃ PRODUKTU: zakładka Propozycje + silnik TikTok Shop — ZBUDOWANE, NA PRODZIE (`swipespy.io`).** (po launch-prep; szczegóły zasad → sekcja „Pozycjonowanie" na górze)
+
+- **Zakładka `/propozycje`** = flagowiec, pierwsza/domyślna (BottomNav + AppSidebar pierwszy slot; `/` i post-login → `/propozycje`; `AuthForm` przekierowuje tam). Typ dnia (gradient, reason chips: rank-delta mint / podwójny blue / świeży amber, sparkline dziennych sztuk) + „Najszybsze wzrosty" (karty mobile / tabela desktop) + toggle pod-feedów `[TikTok Shop]·[Reklamy·PL=wkrótce]` + track-record placeholder + stopka zaufania. Token `--blue #7DA8F5` (podwójny sygnał), Geist Mono na liczbach, reduce-motion. Profil = ikona konta w headerze (zniknął z dolnej nawigacji).
+- **Dzienny silnik** `scripts/tiktok-snapshot.ts` (`npm run tiktok:snapshot`, krok w `daily.yml`): `scrapeType=search` best_sellers ×5 kategorii (`beauty/kitchen/gadgets/home/tumbler`, region=us, retry na flaky/0) = discovery + snapshot + rank w jednym. Upsert produktów (un-archive widzianych; nowe→`tracking_started_at`=dziś; flaga `excluded` po `EXCL_RE`), snapshot `(product_id,day,sales_volume,rank,category)`, archiwizacja niewidzianych >14 dni. **Koszt $0.0059/dzień (~$0.18/mc).** USA only (PL nieosiągalne — patrz pamięć `dropfeed-tiktok-shop-data-limits`).
+- **Stack RPC (migracje 0016-0023):** `tiktok_movers` (velocity + rank-delta), `tiktok_double_signals` (podwójny FB×TikTok po marce), `tiktok_scored` (rdzeń: `gem_score`, `is_gem`, `is_saturated`), `propozycje_tiktok` (typ dnia + do 20), `tiktok_shop_feed` (perełki + ogon rise-first + counts). `tiktok_shop_bestsellers` (stara tabela /shop) już nieużywana.
+- **Reframe perełek (DONE):** perełka = NOWE+ROSNĄCE z karą za nasycenie, NIE bestsellery. Giganci (lifetime >100k) i kategorie konsumpcyjne (`excluded`) wypadają z perełek. Dzień 1 leci na `sold_24h` + świeżość + podwójny (rank-delta od 2. dnia). NIGDY nie dopychamy do 20 bez sygnału, NIGDY modelowany $.
+- **`/shop` przeframe'owany (DONE):** karuzel „Nowe perełki" (pasek-akcent mint/amber/blue) + sort bar (Nowe i rosnące domyślnie · Świeże · Największy skok · Podwójny · Bestsellery zdegradowane) + „Wszystkie produkty" rise-first (KAŻDY produkt, sygnał=wzbogacenie nie filtr) — karty mobile / tabela desktop. Deep-dive: przycisk **„Otwórz profil na TikToku"** (search po sprzedawcy — globalnie dostępny; sklep TikTok Shop jest region-locked US, z PL się nie otworzy). Licznik = „{tracked} śledzonych" / „{shown} typów dziś" (nie rozmiar bazy).
+- **Darmowy feed reklam (`/feed`) — świeże najpierw + rotacja (DONE):** `feed_page` + `p_freshness_weight` (boost `created_at`, fade 14 dni) + `FEED_JITTER_AMP 12→50` → różna próbka co wejście (nie zamrożona 20). Kuracja/perełki zostają sortowane jakością — losowość tylko dla darmowego feedu. Desktop `/feed`: usunięty pusty prawy panel — pełna siatka, deep-dive marki kontekstowo + zamykalny (X).
+
+**Stan pipeline FB (diagnoza 2026-06-18):** dzienny scrape działa; był cicho blokowany 06-15/16 przez Apify `403 "Monthly usage hard limit exceeded"` (poprzedni cykl $29 wyczerpany przez początkowy duży scrape+dev), workflow mimo to świecił na zielono. Cykl resetuje się ~17. dnia mies.; 06-18 wciągnął 131 reklam, obecny cykl $1.97/$29. **Naprawione:** `scrape.ts` robi `exit(1)` gdy wszystkie kraje padną (koniec cichych failów). Apify = **STARTER $29/mc**; TikTok engine (~$0.18) + FB scrape mieszczą się, ale pilnować limitu. Patrz pamięć `dropfeed-apify-quota-trap`.
+
+**Co dalej / otwarte:**
+- **Dojrzewanie sygnałów:** rank-delta od 06-19 (2. dzień z rank), `sold_7d` ~06-24 (≥7 dni od 06-17), akceleracja (sold_7d vs poprzednie 7d) ~07-01 (≥14 dni). Track-record (perełki sprzed 14 dni wciąż rosną) — placeholder do wypełnienia po ~2 tyg.
+- **Drugi pod-feed „Reklamy · PL"** w Propozycjach = na razie „wkrótce" (logika typów z reklam FB/PL do dorobienia).
+- **Podwójny sygnał** v1 = match po marce (rzadkie: PL FB vs US TikTok; Dr.Melaxin trafiony, ale wykluczony jako kosmetyk). Rozważyć match po URL/landingu później.
+- **PL TikTok Shop** = świeży rynek placeholder, aż aktor zacznie wspierać region PL.
+- **biweekly `reconcile`** padł 06-15 (ta sama przyczyna Apify) — zweryfikować przy następnym przebiegu.
+
+---
+
 **Launch-prep — branding + landing + domena (po Etapie 3 fazie 1). NA PRODZIE (`swipespy.io`).**
 - **Marka: `SwipeSpy`** (rebrand z „dropfeed", 2026-06-16). Zmieniona **tylko warstwa tekstowa** (UI, landing, `<title>`/metadane, `package.json` `swipespy`, manifest, strony prawne, nagłówki CLAUDE/PRD). **Infra CELOWO została „dropfeed"** — repo `claude-droppage/dropfeed`, URL `dropfeed-phi.vercel.app`, Supabase `project_id`, klucze localStorage `dropfeed_*` — żeby nie aktualizować Google OAuth/Supabase dwa razy. **NIE „naprawiać" tego rozjazdu.**
 - **Domena LIVE: `swipespy.io`** (DNS na Vercelu: `ns1/ns2.vercel-dns.com`). Supabase `site_url=https://swipespy.io`, `uri_allow_list` = localhost + swipespy.io + dropfeed-phi (Management API). Google OAuth bez zmian w konsoli Google (jej redirect → `*.supabase.co`). Stary `-phi` URL nadal działa.
