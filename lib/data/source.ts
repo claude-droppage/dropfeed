@@ -30,3 +30,6 @@ export const getTikTokShop = impl.getTikTokShop
 export const getTikTokShopProduct = impl.getTikTokShopProduct
 export const getPropozycje = impl.getPropozycje
 export const getTikTokShopFeed = impl.getTikTokShopFeed
+export const getWinnerDays = impl.getWinnerDays
+export const getProductWinnersForDate = impl.getProductWinnersForDate
+export const getProductWinners = impl.getProductWinners

@@ -10,7 +10,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY, FEED_FRESHNESS_WEIGHT } from '@/lib/types'
-import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult, ShopFeed } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult, ShopFeed, ProductWinner } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -403,6 +403,60 @@ export async function getDailyProducts(): Promise<ProductCard[]> {
   const { data, error } = await supabase.rpc('discover_products', { p_limit: 40 })
   if (error || !data) return [] // graceful: cienko z danymi → mniej (zero) produktów
   return (data as RawDiscover[]).map(toProductCard)
+}
+
+// ── Zwycięzcy FB (Część 1-5) — RPC product_winners / products_daily_winners ──
+function mapWinner(r: Record<string, unknown>): ProductWinner {
+  const n = (v: unknown) => (v != null ? Number(v) : undefined)
+  return {
+    productId: r.product_id as string,
+    name: (r.name as string) ?? '',
+    brandName: (r.brand_name as string) ?? '',
+    logoUrl: (r.logo_url as string) ?? undefined,
+    avatarInitials: (r.avatar_initials as string) ?? undefined,
+    niche: (r.niche as string) ?? undefined,
+    price: n(r.price),
+    offerUrl: (r.offer_url as string) ?? undefined,
+    storeUrl: (r.store_url as string) ?? undefined,
+    adCount: (r.ad_count as number) ?? 0,
+    oldestAge: (r.oldest_age as number) ?? 0,
+    newestAge: (r.newest_age as number) ?? 0,
+    firstSeenDays: (r.first_seen_days as number) ?? 0,
+    newAds7d: (r.new_ads_7d as number) ?? 0,
+    country: (r.country as string) ?? undefined,
+    hasForeign: Boolean(r.has_foreign),
+    storesCount: (r.stores_count as number) ?? 1,
+    momentumDelta: (r.momentum_delta as number) ?? 0,
+    heat: n(r.heat),
+    repVideo: (r.rep_video as string) ?? undefined,
+    repThumb: (r.rep_thumb as string) ?? undefined,
+    isVideo: Boolean(r.is_video),
+    isFresh: Boolean(r.is_fresh),
+    isValidated: Boolean(r.is_validated),
+    isScaling: Boolean(r.is_scaling),
+    score: Number(r.score ?? 0),
+  }
+}
+
+/** Lista dni z zapisanym snapshotem zwycięzców (ostatnie N, malejąco). */
+export async function getWinnerDays(n = 7): Promise<string[]> {
+  const { data, error } = await supabase.rpc('winner_days', { p_n: n })
+  if (error || !Array.isArray(data)) return []
+  return data as string[]
+}
+
+/** Zwycięzcy dla dnia (z products_daily_winners). Pusto → uczciwy pusty stan. */
+export async function getProductWinnersForDate(date: string): Promise<ProductWinner[]> {
+  const { data, error } = await supabase.rpc('product_winners_for_date', { p_date: date })
+  if (error || !Array.isArray(data)) return []
+  return (data as Record<string, unknown>[]).map(mapWinner)
+}
+
+/** Pełna lista rise-first (live, winner-score), opcjonalnie per kraj (PL feed). */
+export async function getProductWinners(limit = 60, country?: string): Promise<ProductWinner[]> {
+  const { data, error } = await supabase.rpc('product_winners', { p_limit: limit, p_country: country ?? null })
+  if (error || !Array.isArray(data)) return []
+  return (data as Record<string, unknown>[]).map(mapWinner)
 }
 
 interface RawDetail {

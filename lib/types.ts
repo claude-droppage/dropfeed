@@ -209,6 +209,42 @@ export interface ProductDetail extends ProductCard {
   adLibraryUrl: string
 }
 
+/** Zwycięzca FB (z RPC product_winners / products_daily_winners). Tylko realne sygnały. */
+export interface ProductWinner {
+  productId: string
+  name: string
+  brandName: string
+  logoUrl?: string
+  avatarInitials?: string
+  niche?: string
+  price?: number
+  offerUrl?: string
+  storeUrl?: string
+  /** liczba aktywnych reklam produktu */
+  adCount: number
+  /** staż najstarszej aktywnej reklamy (dni chodzi) */
+  oldestAge: number
+  newestAge: number
+  firstSeenDays: number
+  /** reklamy zaciągnięte w ost. 7 dni */
+  newAds7d: number
+  country?: string
+  hasForeign: boolean
+  /** różni reklamodawcy na ten sam offer_url (walidacja) */
+  storesCount: number
+  momentumDelta: number
+  heat?: number
+  /** URL wideo reklamy (R2 .mp4) — gdy is_video */
+  repVideo?: string
+  /** miniatura/poster */
+  repThumb?: string
+  isVideo: boolean
+  isFresh: boolean
+  isValidated: boolean
+  isScaling: boolean
+  score: number
+}
+
 export type ShopMarket = 'PL' | 'US'
 
 export interface TikTokShopItem {

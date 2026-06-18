@@ -1,141 +1,105 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, ExternalLink } from 'lucide-react'
-import type { ProductCard, FeedSource } from '@/lib/types'
+import type { ProductWinner } from '@/lib/types'
 import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
-import SignalChip from '@/components/ui/SignalChip'
-import SourceToggle from '@/components/shell/SourceToggle'
+import { getProductWinnersForDate } from '@/lib/data/source'
+import WinnerCard from './WinnerCard'
 
-const THUMB = 'rounded-xl flex items-center justify-center bg-gradient-to-b from-bg-raised to-bg-void'
-const FLAG: Record<string, string> = { PL: '🇵🇱', US: '🇺🇸', GB: '🇬🇧', UK: '🇬🇧', DE: '🇩🇪', FR: '🇫🇷', ES: '🇪🇸', IT: '🇮🇹' }
-const flag = (c?: string) => (c ? FLAG[c.toUpperCase()] ?? '🌍' : '🌍')
+const WD = ['niedz', 'pon', 'wt', 'śr', 'czw', 'pt', 'sob']
 
 export default function ProductsView({
-  products,
-  dateLabel,
+  todayISO, daysWithData, todayWinners, tail,
 }: {
-  products: ProductCard[]
-  dateLabel: string
+  todayISO: string
+  daysWithData: string[]
+  todayWinners: ProductWinner[]
+  tail: ProductWinner[]
 }) {
-  const [source, setSource] = useState<FeedSource>('facebook')
   const router = useRouter()
+  const open = (id: string) => router.push(`/products/${id}`)
+  const hasData = useMemo(() => new Set(daysWithData), [daysWithData])
+
+  // ostatnie 7 dni kalendarzowych (od dziś wstecz) — dni bez snapshotu = pusty stan
+  const last7 = useMemo(() => {
+    const base = new Date(todayISO + 'T00:00:00')
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base); d.setDate(base.getDate() - i)
+      return d.toISOString().slice(0, 10)
+    })
+  }, [todayISO])
+
+  const [day, setDay] = useState(todayISO)
+  const [cache, setCache] = useState<Record<string, ProductWinner[]>>({ [todayISO]: todayWinners })
+  const [loading, setLoading] = useState(false)
+
+  const selectDay = async (d: string) => {
+    setDay(d)
+    if (cache[d] || !hasData.has(d)) return
+    setLoading(true)
+    const w = await getProductWinnersForDate(d)
+    setCache((c) => ({ ...c, [d]: w }))
+    setLoading(false)
+  }
+
+  const winners = cache[day] ?? []
+  const label = (d: string) => {
+    if (d === todayISO) return 'Dziś'
+    return WD[new Date(d + 'T00:00:00').getDay()]
+  }
+  const dayNum = (d: string) => new Date(d + 'T00:00:00').getDate()
 
   return (
     <div className="h-full overflow-y-auto bg-bg-void">
-      {/* ── Mobile ───────────────────────────────────────────────── */}
-      <div className="md:hidden">
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+      <div className="mx-auto max-w-xl md:max-w-6xl px-4 md:px-8 pt-4 pb-12">
+        <div className="flex items-center justify-between mb-1 md:hidden">
           <SwipeSpyLogo className="text-[1.15rem]" />
         </div>
-        <div className="px-4 pb-2">
-          <SourceToggle value={source} onChange={setSource} full />
-        </div>
-        <div className="px-4 pt-2 pb-3">
-          <h2 className="text-text-hi text-lg font-bold tracking-tight">Dziś dla Ciebie</h2>
-          <p className="text-text-lo text-xs mt-0.5">{products.length} produktów · {dateLabel}</p>
-        </div>
-        <div className="px-3 pb-6 flex flex-col gap-2.5">
-          {products.map((p) => (
-            <Link
-              key={p.id}
-              href={`/products/${p.id}`}
-              className="flex gap-3 bg-bg-surface border border-line rounded-2xl p-2.5 active:border-text-mid transition-colors"
-            >
-              <div className={`w-[74px] h-[74px] text-3xl shrink-0 overflow-hidden ${THUMB}`}>
-                {p.thumbUrl ? <img src={p.thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : p.emoji}
-              </div>
-              <div className="flex-1 min-w-0 flex flex-col">
-                <p className="text-[13.5px] font-semibold text-text-hi leading-tight">{p.name}</p>
-                <p className="text-[11px] text-text-lo mt-0.5">{p.shop}</p>
-                <div className="flex flex-wrap items-center gap-1.5 mt-auto pt-2">
-                  <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-heat/10 text-heat">🔥 {p.heatScore}</span>
-                  <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-bg-raised text-text-mid">{p.adCount} reklam</span>
-                  {p.daysActive != null && <span className="text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-bg-raised text-text-mid">{p.daysActive}d</span>}
-                  <span className="text-[10.5px]">{flag(p.country)}</span>
-                </div>
-              </div>
-              <div className="text-sm font-bold text-text-hi self-start whitespace-nowrap">{p.price}</div>
-            </Link>
-          ))}
-        </div>
-      </div>
+        <h1 className="text-lg md:text-[22px] font-bold tracking-tight text-text-hi">Produkty</h1>
+        <p className="text-[12px] text-text-mid mt-0.5 mb-4">Zwycięzcy z reklam — nowe i rosnące, z walidacją (ilu reklamuje). Realne liczby, nigdy $.</p>
 
-      {/* ── Desktop — galeria kart (Minea/WinningHunter style) ────── */}
-      <div className="hidden md:block px-7 py-5">
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <h1 className="text-[22px] font-bold tracking-tight text-text-hi">
-            Produkty <span className="text-text-lo text-sm font-medium ml-1.5">typy dnia · {dateLabel}</span>
-          </h1>
-          <SourceToggle value={source} onChange={setSource} />
+        {/* kalendarz 7 dni */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
+          {last7.map((d) => {
+            const active = d === day
+            const dis = !hasData.has(d)
+            return (
+              <button key={d} type="button" onClick={() => selectDay(d)}
+                className={`shrink-0 w-14 py-2 rounded-xl border text-center transition-colors ${
+                  active ? 'bg-heat/15 border-heat/40 text-heat'
+                  : dis ? 'bg-transparent border-line text-text-lo'
+                  : 'bg-bg-surface border-line text-text-mid hover:text-text-hi'}`}>
+                <div className="text-[11px] font-semibold">{label(d)}</div>
+                <div className="text-[15px] font-bold font-mono leading-tight">{dayNum(d)}</div>
+              </button>
+            )
+          })}
         </div>
 
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 flex items-center gap-2.5 bg-bg-surface border border-line rounded-[10px] px-3.5 py-2.5 text-text-lo text-[13px]">
-            <Search size={15} /> Szukaj produktu, sklepu lub domeny…
+        {/* zwycięzcy wybranego dnia */}
+        {loading ? (
+          <div className="py-10 text-center text-text-lo text-sm">ładuję…</div>
+        ) : winners.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-line px-5 py-8 text-center mb-8">
+            <div className="text-2xl mb-1.5">🗓️</div>
+            <p className="text-sm font-semibold text-text-hi mb-1">{hasData.has(day) ? 'Brak zwycięzców tego dnia' : 'Brak snapshotu z tego dnia'}</p>
+            <p className="text-[12px] text-text-lo">Zwycięzcy są liczeni raz dziennie po scrape. Historia narasta — wróć jutro.</p>
           </div>
-          <div className="bg-bg-surface border border-line rounded-[10px] px-3.5 py-2.5 text-[13px] text-text-mid font-medium">
-            Sortuj: <b className="text-heat">Heat ↓</b>
-          </div>
-        </div>
-
-        {products.length === 0 ? (
-          <div className="py-20 text-center text-text-lo text-sm">Brak produktów do pokazania.</div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {products.map((p, i) => (
-              <GalleryCard key={p.id} p={p} rank={i + 1} onOpen={() => router.push(`/products/${p.id}`)} />
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
+            {winners.map((w) => <WinnerCard key={w.productId} w={w} onOpen={() => open(w.productId)} />)}
           </div>
         )}
-      </div>
-    </div>
-  )
-}
 
-function GalleryCard({ p, rank, onOpen }: { p: ProductCard; rank: number; onOpen: () => void }) {
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(e) => e.key === 'Enter' && onOpen()}
-      className="group bg-bg-surface border border-line rounded-2xl overflow-hidden cursor-pointer hover:border-text-mid transition-colors outline-none focus-visible:ring-2 focus-visible:ring-heat/40"
-    >
-      {/* duża kreacja + overlay rank/heat (+ top sygnał) */}
-      <div className="relative aspect-[4/5] bg-bg-raised overflow-hidden">
-        {p.thumbUrl ? (
-          <img src={p.thumbUrl} alt="" loading="lazy" className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-5xl">{p.emoji}</div>
-        )}
-        <span className="absolute top-2 left-2 text-[11px] font-bold text-text-hi bg-bg-void/70 backdrop-blur px-2 py-1 rounded-md">#{rank}</span>
-        <span className="absolute top-2 right-2 text-[11px] font-bold text-heat bg-bg-void/70 backdrop-blur px-2 py-1 rounded-md">🔥 {p.heatScore}</span>
-        {p.signals[0] && <span className="absolute bottom-2 left-2"><SignalChip signal={p.signals[0]} /></span>}
-      </div>
-
-      {/* meta — tylko twarde dane */}
-      <div className="p-3">
-        <p className="text-sm font-semibold text-text-hi leading-snug line-clamp-2 min-h-[2.5em]">{p.name}</p>
-        <p className="text-[11px] text-text-lo mt-0.5 truncate">{p.shop}</p>
-        <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[11px] text-text-mid mt-2">
-          <span>{p.adCount} reklam</span>
-          {p.daysActive != null && <><span className="text-text-lo">·</span><span>{p.daysActive}d aktywna</span></>}
-          <span className="text-text-lo">·</span><span>{flag(p.country)}</span>
-          {p.price && <><span className="text-text-lo">·</span><span className="font-semibold text-text-hi">{p.price}</span></>}
-        </div>
-        {p.adLibraryUrl && (
-          <a
-            href={p.adLibraryUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 text-[11px] text-heat mt-2 hover:underline"
-          >
-            otwórz reklamę <ExternalLink size={12} />
-          </a>
+        {/* pełna lista rise-first */}
+        {tail.length > 0 && (
+          <>
+            <h2 className="text-base font-bold text-text-hi mb-3">Wszystkie produkty <span className="text-text-lo text-xs font-normal">· rosnące najpierw</span></h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {tail.map((w) => <WinnerCard key={w.productId} w={w} onOpen={() => open(w.productId)} />)}
+            </div>
+          </>
         )}
       </div>
     </div>
