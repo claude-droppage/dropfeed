@@ -454,9 +454,10 @@ export async function getProductWinnersForDate(date: string): Promise<ProductWin
   return (data as Record<string, unknown>[]).map(mapWinner)
 }
 
-/** Zwycięzcy: tiered=true → kuracja 70/30 (top-N proven/fresh); false → pełny ogon rise-first. */
-export async function getProductWinners(limit = 60, country?: string, tiered = true): Promise<ProductWinner[]> {
-  const { data, error } = await supabase.rpc('product_winners', { p_limit: limit, p_country: country ?? null, p_tiered: tiered })
+/** Zwycięzcy: tiered=true → kuracja 70/30; false → ogon rise-first. dedupWindow=true →
+ *  bez powtórek produktu/marki z ostatnich 6 dni (feed/Propozycje), false → pełny browse. */
+export async function getProductWinners(limit = 60, country?: string, tiered = true, dedupWindow = false): Promise<ProductWinner[]> {
+  const { data, error } = await supabase.rpc('product_winners', { p_limit: limit, p_country: country ?? null, p_tiered: tiered, p_dedup_window: dedupWindow })
   if (error || !Array.isArray(data)) return []
   return (data as Record<string, unknown>[]).map(mapWinner)
 }
