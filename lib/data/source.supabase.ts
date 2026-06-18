@@ -440,11 +440,11 @@ function mapWinner(r: Record<string, unknown>): ProductWinner {
   }
 }
 
-/** Lista dni z zapisanym snapshotem zwycięzców (ostatnie N, malejąco). */
-export async function getWinnerDays(n = 7): Promise<string[]> {
-  const { data, error } = await supabase.rpc('winner_days', { p_n: n })
+/** Dni z snapshotem zwycięzców + miniatura top-zwycięzcy (selektor kalendarza). */
+export async function getWinnerDays(n = 7): Promise<{ day: string; thumb?: string }[]> {
+  const { data, error } = await supabase.rpc('winner_days_rich', { p_n: n })
   if (error || !Array.isArray(data)) return []
-  return data as string[]
+  return (data as { day: string; thumb?: string | null }[]).map((d) => ({ day: d.day, thumb: d.thumb ?? undefined }))
 }
 
 /** Zwycięzcy dla dnia (z products_daily_winners). Pusto → uczciwy pusty stan. */

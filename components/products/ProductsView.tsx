@@ -10,33 +10,36 @@ import WinnerCard from './WinnerCard'
 const WD = ['niedz', 'pon', 'wt', 'śr', 'czw', 'pt', 'sob']
 
 export default function ProductsView({
-  todayISO, daysWithData, todayWinners, tail,
+  realTodayISO, days, newestDay, todayWinners, tail,
 }: {
-  todayISO: string
-  daysWithData: string[]
+  realTodayISO: string
+  days: { day: string; thumb?: string }[]
+  newestDay: string
   todayWinners: ProductWinner[]
   tail: ProductWinner[]
 }) {
   const router = useRouter()
   const open = (id: string) => router.push(`/products/${id}`)
-  const hasData = useMemo(() => new Set(daysWithData), [daysWithData])
+  // mapa dzień → miniatura (Minea-style kafelki); obecność = ma snapshot
+  const thumbByDay = useMemo(() => new Map(days.map((d) => [d.day, d.thumb])), [days])
 
-  // ostatnie 7 dni kalendarzowych (od dziś wstecz) — dni bez snapshotu = pusty stan
+  // okno [dziś + 6 wstecz] = 7 dni, kotwica = realne dziś (UTC, bez dryfu strefy)
   const last7 = useMemo(() => {
-    const base = new Date(todayISO + 'T00:00:00')
+    const base = new Date(realTodayISO + 'T00:00:00Z')
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(base); d.setDate(base.getDate() - i)
+      const d = new Date(base); d.setUTCDate(base.getUTCDate() - i)
       return d.toISOString().slice(0, 10)
     })
-  }, [todayISO])
+  }, [realTodayISO])
 
-  const [day, setDay] = useState(todayISO)
-  const [cache, setCache] = useState<Record<string, ProductWinner[]>>({ [todayISO]: todayWinners })
+  // domyślnie najnowszy dzień Z DANYMI (nigdy pusty)
+  const [day, setDay] = useState(newestDay)
+  const [cache, setCache] = useState<Record<string, ProductWinner[]>>({ [newestDay]: todayWinners })
   const [loading, setLoading] = useState(false)
 
   const selectDay = async (d: string) => {
     setDay(d)
-    if (cache[d] || !hasData.has(d)) return
+    if (cache[d] || !thumbByDay.has(d)) return
     setLoading(true)
     const w = await getProductWinnersForDate(d)
     setCache((c) => ({ ...c, [d]: w }))
@@ -44,11 +47,8 @@ export default function ProductsView({
   }
 
   const winners = cache[day] ?? []
-  const label = (d: string) => {
-    if (d === todayISO) return 'Dziś'
-    return WD[new Date(d + 'T00:00:00').getDay()]
-  }
-  const dayNum = (d: string) => new Date(d + 'T00:00:00').getDate()
+  const label = (d: string) => (d === realTodayISO ? 'Dziś' : WD[new Date(d + 'T00:00:00Z').getUTCDay()])
+  const dayNum = (d: string) => new Date(d + 'T00:00:00Z').getUTCDate()
 
   return (
     <div className="h-full overflow-y-auto bg-bg-void">
@@ -59,19 +59,23 @@ export default function ProductsView({
         <h1 className="text-lg md:text-[22px] font-bold tracking-tight text-text-hi">Produkty</h1>
         <p className="text-[12px] text-text-mid mt-0.5 mb-4">Zwycięzcy z reklam — nowe i rosnące, z walidacją (ilu reklamuje). Realne liczby, nigdy $.</p>
 
-        {/* kalendarz 7 dni */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        {/* kalendarz 7 dni — Minea: miniatura top-zwycięzcy + etykieta */}
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
           {last7.map((d) => {
             const active = d === day
-            const dis = !hasData.has(d)
+            const thumb = thumbByDay.get(d)
+            const hasSnap = thumbByDay.has(d)
             return (
               <button key={d} type="button" onClick={() => selectDay(d)}
-                className={`shrink-0 w-14 py-2 rounded-xl border text-center transition-colors ${
-                  active ? 'bg-heat/15 border-heat/40 text-heat'
-                  : dis ? 'bg-transparent border-line text-text-lo'
-                  : 'bg-bg-surface border-line text-text-mid hover:text-text-hi'}`}>
-                <div className="text-[11px] font-semibold">{label(d)}</div>
-                <div className="text-[15px] font-bold font-mono leading-tight">{dayNum(d)}</div>
+                className={`shrink-0 w-[60px] rounded-xl border overflow-hidden text-center transition-all ${
+                  active ? 'border-heat ring-1 ring-heat/40' : 'border-line hover:border-text-mid'} ${hasSnap ? '' : 'opacity-50'}`}>
+                <div className="relative h-[60px] bg-bg-raised flex items-center justify-center">
+                  {thumb ? <img src={thumb} alt="" loading="lazy" className="w-full h-full object-cover" /> : <span className="text-text-lo text-lg">🗓️</span>}
+                </div>
+                <div className={`py-1 ${active ? 'bg-heat/15' : 'bg-bg-surface'}`}>
+                  <div className={`text-[10px] font-semibold ${active ? 'text-heat' : 'text-text-mid'}`}>{label(d)}</div>
+                  <div className={`text-[13px] font-bold font-mono leading-none ${active ? 'text-heat' : 'text-text-hi'}`}>{dayNum(d)}</div>
+                </div>
               </button>
             )
           })}
@@ -83,7 +87,7 @@ export default function ProductsView({
         ) : winners.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-line px-5 py-8 text-center mb-8">
             <div className="text-2xl mb-1.5">🗓️</div>
-            <p className="text-sm font-semibold text-text-hi mb-1">{hasData.has(day) ? 'Brak zwycięzców tego dnia' : 'Brak snapshotu z tego dnia'}</p>
+            <p className="text-sm font-semibold text-text-hi mb-1">{thumbByDay.has(day) ? 'Brak zwycięzców tego dnia' : 'Brak snapshotu — historia narasta'}</p>
             <p className="text-[12px] text-text-lo">Zwycięzcy są liczeni raz dziennie po scrape. Historia narasta — wróć jutro.</p>
           </div>
         ) : (

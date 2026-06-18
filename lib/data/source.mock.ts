@@ -68,6 +68,6 @@ export async function getPropozycje(): Promise<import('@/lib/types').PropozycjeR
 export async function getTikTokShopFeed(): Promise<import('@/lib/types').ShopFeed> {
   return { gems: [], all: [], counts: { tracked: 0, gems: 0 } }
 }
-export async function getWinnerDays(): Promise<string[]> { return [] }
+export async function getWinnerDays(): Promise<{ day: string; thumb?: string }[]> { return [] }
 export async function getProductWinnersForDate(): Promise<import('@/lib/types').ProductWinner[]> { return [] }
 export async function getProductWinners(_l?: number, _c?: string, _t?: boolean, _d?: boolean): Promise<import('@/lib/types').ProductWinner[]> { return [] }
