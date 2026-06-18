@@ -223,6 +223,17 @@ export interface TikTokShopItem {
   url?: string
   /** trend, np. "▲ 32%" lub "nowy" (pusty, dopóki nie ma ≥2 snapshotów) */
   trend: string
+  // ── pola desktopowej tabeli (Kalodata-style) — część pusta dopóki nie ma danych ──
+  rating?: number
+  reviewCount?: number
+  /** wzrost % ze snapshotów (null gdy <2 dni) */
+  growthPct?: number | null
+  /** seria sprzedaży do sparkline (null gdy <2 snapshoty) */
+  salesSeries?: number[] | null
+  /** liczba twórców (z cache wideo; 0 gdy produkt nieotwierany) */
+  creatorsCount?: number
+  /** „data od" — first_live_time (puste dopóki produkt nie enrichowany) */
+  dateFrom?: string
 }
 
 export interface TikTokShopResult {

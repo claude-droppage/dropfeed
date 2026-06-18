@@ -246,24 +246,26 @@ export async function getTikTokShop(market: ShopMarket): Promise<TikTokShopResul
   // PL — świeży rynek (TikTok Shop PL od 15.06), brak realnych bestsellerów
   if (market !== 'US') return { market: 'PL', state: 'fresh', items: [], firstMoves: [] }
 
-  const { data, error } = await supabase
-    .from('tiktok_shop_products')
-    .select('product_id,title,image_url,product_url,current_price,sales_volume')
-    .eq('region', 'us')
-    .order('sales_volume', { ascending: false }) // realny ranking sprzedaży
-    .limit(30)
-  if (error || !data) return { market: 'US', state: 'live', items: [] } // graceful
+  // RPC: produkty + seria snapshotów (sparkline) + wzrost% + liczba twórców
+  const { data, error } = await supabase.rpc('tiktok_shop_bestsellers', { p_region: 'us', p_limit: 40 })
+  if (error || !Array.isArray(data)) return { market: 'US', state: 'live', items: [] } // graceful
 
-  const items: TikTokShopItem[] = data.map((r, idx) => ({
-    id: r.product_id,
+  const items: TikTokShopItem[] = (data as Record<string, unknown>[]).map((r, idx) => ({
+    id: r.product_id as string,
     rank: idx + 1,
-    name: r.title ?? '',
+    name: (r.title as string) ?? '',
     emoji: '🛒',
-    thumbUrl: r.image_url ?? undefined,
-    sold: formatSold(r.sales_volume),
+    thumbUrl: (r.image_url as string) ?? undefined,
+    sold: formatSold(r.sales_volume as number),
     price: r.current_price != null ? `$${r.current_price}` : undefined,
-    url: r.product_url ?? undefined,
-    trend: '', // brak — doliczymy z ≥2 snapshotów (jak FB momentum)
+    url: (r.product_url as string) ?? undefined,
+    trend: r.growth_pct != null ? `▲ ${r.growth_pct}%` : '',
+    rating: r.rating != null ? Number(r.rating) : undefined,
+    reviewCount: (r.review_count as number) ?? undefined,
+    growthPct: r.growth_pct != null ? Number(r.growth_pct) : null,
+    salesSeries: (r.sales_series as number[]) ?? null,
+    creatorsCount: (r.creators_count as number) ?? undefined,
+    dateFrom: (r.first_live_time as string) ?? undefined,
   }))
   return { market: 'US', state: 'live', items }
 }
