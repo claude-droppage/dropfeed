@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Heart } from 'lucide-react'
+import { Heart, X } from 'lucide-react'
 import type { FeedItem } from '@/lib/types'
 import { getBrandActiveAdCount, getBrandSnapshots } from '@/lib/data/source'
 import BrandDeepDive from '@/components/deepdive/BrandDeepDive'
@@ -9,9 +9,10 @@ import BrandDeepDive from '@/components/deepdive/BrandDeepDive'
 interface Props {
   item: FeedItem | null
   onSave?: () => void
+  onClose?: () => void
 }
 
-export default function DesktopDeepDive({ item, onSave }: Props) {
+export default function DesktopDeepDive({ item, onSave, onClose }: Props) {
   const brandId = item?.brand.id ?? null
   const [count, setCount] = useState(0)
   const [snapshots, setSnapshots] = useState<{ day: string; count: number }[]>([])
@@ -25,19 +26,19 @@ export default function DesktopDeepDive({ item, onSave }: Props) {
     return () => { cancelled = true }
   }, [brandId])
 
-  if (!item) {
-    return (
-      <aside className="w-[280px] shrink-0 border-l border-line bg-bg-surface flex items-center justify-center p-6">
-        <p className="text-text-lo text-[13px] text-center leading-relaxed">
-          kliknij kartę żeby zobaczyć szczegóły
-        </p>
-      </aside>
-    )
-  }
+  // Brak zaznaczenia → panel nie istnieje (pełna siatka kart, bez pustego panelu).
+  if (!item) return null
 
   return (
-    <aside className="w-[280px] shrink-0 border-l border-line bg-bg-surface flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+    <aside className="w-[300px] shrink-0 border-l border-line bg-bg-surface flex flex-col overflow-hidden">
+      {onClose && (
+        <div className="flex justify-end px-2 pt-2 shrink-0">
+          <button type="button" onClick={onClose} aria-label="Zamknij" className="p-1.5 rounded-lg text-text-lo hover:text-text-hi hover:bg-bg-raised transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-1">
         <BrandDeepDive brand={item.brand} ad={item.ad} brandAdCount={count} snapshots={snapshots} />
       </div>
 

@@ -9,7 +9,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY } from '@/lib/types'
+import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY, FEED_FRESHNESS_WEIGHT } from '@/lib/types'
 import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult, ShopFeed } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
@@ -158,6 +158,7 @@ export async function getFeedPage(
     p_niche_weight: FEED_NICHE_WEIGHT,
     p_jitter_amp: FEED_JITTER_AMP,
     p_discovery_every: FEED_DISCOVERY_EVERY,
+    p_freshness_weight: FEED_FRESHNESS_WEIGHT,
   })
 
   if (error) fail('getFeedPage', error.message)

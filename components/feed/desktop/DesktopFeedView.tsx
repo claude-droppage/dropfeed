@@ -110,11 +110,14 @@ export default function DesktopFeedView({ items, onLoadMore, hasMore, adLimit, s
             )}
           </main>
 
-          {/* Right deep-dive panel */}
-          <DesktopDeepDive
-            item={selectedItem}
-            onSave={() => { /* TODO: save to board */ }}
-          />
+          {/* Deep-dive marki — tylko gdy karta zaznaczona (bez stałego pustego panelu) */}
+          {selectedItem && (
+            <DesktopDeepDive
+              item={selectedItem}
+              onSave={() => { /* TODO: save to board */ }}
+              onClose={() => setSelectedIdx(null)}
+            />
+          )}
         </div>
       )}
     </div>

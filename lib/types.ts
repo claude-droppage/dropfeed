@@ -121,8 +121,12 @@ export const FEED_MIN_AGE_DAYS = 7
 // ── Logika feedu (PRD §11) — wszystko strojalne ──────────────────────────
 /** Bonus heat-equivalent dla reklam z preferowanych nisz (miękkie ważenie). */
 export const FEED_NICHE_WEIGHT = 8
-/** Amplituda jittera z seeda (umiarkowana rotacja kolejności między wejściami). */
-export const FEED_JITTER_AMP = 12
+/** Amplituda jittera z seeda — porównywalna z rozrzutem heat (22-73), żeby próbka
+ *  realnie się różniła między sesjami (darmowy teaser, nie zamrożona ta sama 20). */
+export const FEED_JITTER_AMP = 50
+/** Waga świeżości — boost reklam zaciągniętych ostatnio (created_at, fade 14 dni).
+ *  „Świeże najpierw": nowe reklamy wypływają na górę wraz z dziennym scrape. */
+export const FEED_FRESHNESS_WEIGHT = 40
 /** Co ile pozycji wstrzyknąć reklamę spoza preferowanych nisz (odkrycie). */
 export const FEED_DISCOVERY_EVERY = 10
 
