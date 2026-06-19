@@ -437,6 +437,8 @@ function mapWinner(r: Record<string, unknown>): ProductWinner {
     isScaling: Boolean(r.is_scaling),
     brandActiveAds: (r.active_brand_ads as number) ?? 0,
     tier: (r.tier as 'proven' | 'fresh' | 'other') ?? 'other',
+    platform: (r.platform as string) ?? undefined,
+    hasProductPage: r.has_product_page != null ? Boolean(r.has_product_page) : undefined,
     score: Number(r.score ?? 0),
   }
 }

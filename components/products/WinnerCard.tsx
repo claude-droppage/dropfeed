@@ -22,6 +22,7 @@ function Chips({ w }: { w: ProductWinner }) {
       {w.newAds7d > 0 && <Chip c="profit">▲ <span className="font-mono">+{w.newAds7d}</span> reklam/7d</Chip>}
       {w.momentumDelta > 0 && <Chip c="profit">↑ skaluje</Chip>}
       {w.isFresh && <Chip c="heat">✦ nowy</Chip>}
+      {w.hasProductPage && <Chip c="profit">🛍 produkt</Chip>}
       {w.hasForeign && <Chip c="blue">🌍 zagranica</Chip>}
     </div>
   )

@@ -27,6 +27,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { computeHeatScore } from '../lib/heat.ts'
 import type { OfferType, Niche, AdAngle, AdFormat } from '../lib/types.ts'
+import { platformFromUrl, landingType, shopifyFromResponse, type Platform, type LandingType } from '../lib/shopify.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -117,24 +118,28 @@ Na podstawie danych reklamy (tekst, marka, landing) zwróć JSON:
 - language: kod języka tekstu reklamy ISO 639-1 (np. pl, en, de, fr, es).
 Odpowiadaj WYŁĄCZNIE zgodnie ze schematem.`
 
-// ─── landing fetch (tytuł + opis → wsparcie confidence) ───────────────────────
-async function fetchLanding(url: string | undefined): Promise<string> {
-  if (!url || !/^https?:\/\//.test(url)) return ''
+// ─── landing fetch (tytuł+opis → confidence) + detekcja Shopify (ten sam fetch, $0) ──
+interface Landing { text: string; platform: Platform; landing_type: LandingType }
+async function fetchLanding(url: string | undefined): Promise<Landing> {
+  const lt = landingType(url)
+  const byUrl = platformFromUrl(url)
+  if (!url || !/^https?:\/\//.test(url)) return { text: '', platform: 'unknown', landing_type: lt }
   try {
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 6000)
     const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 swipespy-enrich' } })
     clearTimeout(t)
-    if (!res.ok) return ''
+    if (!res.ok) return { text: '', platform: byUrl, landing_type: lt }
     const html = (await res.text()).slice(0, 200_000)
+    const platform: Platform = byUrl === 'shopify' ? 'shopify' : (shopifyFromResponse(res.headers, html) ? 'shopify' : 'non_shopify')
     const pick = (re: RegExp) => (html.match(re)?.[1] ?? '').trim()
     const title = pick(/<title[^>]*>([^<]+)<\/title>/i)
     const ogTitle = pick(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
     const ogDesc = pick(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
     const desc = pick(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
-    return [ogTitle || title, ogDesc || desc].filter(Boolean).join(' — ').slice(0, 500)
+    return { text: [ogTitle || title, ogDesc || desc].filter(Boolean).join(' — ').slice(0, 500), platform, landing_type: lt }
   } catch {
-    return ''
+    return { text: '', platform: byUrl, landing_type: lt } // timeout/blokada → unknown (chyba że URL pewny)
   }
 }
 
@@ -220,6 +225,8 @@ async function main() {
   // 2) Landing fetch (równolegle)
   console.log('Pobieranie landingów…')
   const landings = await mapPool(todo, 10, async (r) => fetchLanding(snapshotText(r.payload.snapshot as Json).landingUrl))
+  const landingByAd = new Map(todo.map((r, i) => [r.ad_archive_id, landings[i]]))
+  const GATE_DROP_UNKNOWN = false // toggle: true → unknown też dropuj (ostro)
 
   // 3) Batch do Claude Haiku
   console.log('Wysyłanie batcha do Claude Haiku…')
@@ -232,7 +239,7 @@ async function main() {
       `Treść: ${t.body}`,
       `CTA: ${t.cta}`,
       `Opis linku: ${t.linkDesc}`,
-      `Landing: ${landings[i] || '(brak)'}`,
+      `Landing: ${landings[i]?.text || '(brak)'}`,
     ].join('\n')
     return {
       custom_id: r.ad_archive_id,
@@ -276,13 +283,20 @@ async function main() {
   interface Cand {
     r: RawRow; c: Classification; pid: string; brandId: string
     heat: number; age: number; isActive: boolean; countries: string[]; total: number; new14: number
+    platform: Platform; landing_type: LandingType
   }
   const cands: Cand[] = []
   const processedIds: string[] = [] // wszystkie sklasyfikowane (włączone + odcięte capem)
+  let droppedNonShopify = 0
   for (const r of todo) {
     const c = cls.get(r.ad_archive_id)
     if (!c) continue
-    processedIds.push(r.ad_archive_id)
+    processedIds.push(r.ad_archive_id) // oznacz processed (nie retry), nawet gdy bramka odrzuci
+    // GATE Shopify: confirmed non_shopify NIE wpada; unknown wpada+flaga (toggle GATE_DROP_UNKNOWN)
+    const land = landingByAd.get(r.ad_archive_id) ?? { text: '', platform: 'unknown' as Platform, landing_type: 'other' as LandingType }
+    if (land.platform === 'non_shopify' || (GATE_DROP_UNKNOWN && land.platform === 'unknown')) {
+      droppedNonShopify++; continue
+    }
     const s = r.payload.snapshot as Json
     const pid = str(s.page_id) ?? str(r.payload.page_id)
     if (!pid) continue
@@ -296,8 +310,9 @@ async function main() {
       ageInDays: age, newVariantsLast14Days: new14, totalVariants: total,
       euCountriesCount: countries.length, isActive, scalingSince: undefined,
     })
-    cands.push({ r, c, pid, brandId: uuidv5('brand:' + pid), heat, age, isActive, countries, total, new14 })
+    cands.push({ r, c, pid, brandId: uuidv5('brand:' + pid), heat, age, isActive, countries, total, new14, platform: land.platform, landing_type: land.landing_type })
   }
+  if (droppedNonShopify) console.log(`Gate Shopify: odrzucono ${droppedNonShopify} reklam non_shopify`)
 
   // Obecne liczby reklam/markę (limit 10 w bazie)
   const brandIds = [...new Set(cands.map((x) => x.brandId))]
@@ -321,7 +336,7 @@ async function main() {
     if ((perBrand.get(x.brandId) ?? 0) >= PER_BRAND_CAP) { capped++; continue }
     perBrand.set(x.brandId, (perBrand.get(x.brandId) ?? 0) + 1)
 
-    const { r, c, pid, brandId, heat, age, isActive, countries, total, new14 } = x
+    const { r, c, pid, brandId, heat, age, isActive, countries, total, new14, platform, landing_type } = x
     const s = r.payload.snapshot as Json
     const t = snapshotText(s)
     const media = creativeUrls(s)
@@ -388,6 +403,8 @@ async function main() {
       last_seen_at: nowIso,
       country: r.country ?? null,
       language: c.language || null,
+      platform,
+      landing_type,
     })
   }
 

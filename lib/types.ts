@@ -250,6 +250,10 @@ export interface ProductWinner {
   brandActiveAds: number
   /** tier selekcji: proven (skala+staż, wciąż aktywny) / fresh (młody gem) / other */
   tier: 'proven' | 'fresh' | 'other'
+  /** platforma landingu (shopify/unknown — non_shopify nie trafia do winnerów) */
+  platform?: string
+  /** landing prowadzi na stronę produktową (badge + bonus; nie wymagane) */
+  hasProductPage?: boolean
   score: number
 }
 
