@@ -13,13 +13,17 @@ interface Props {
   initialMode?: FeedMode
   initialOfferTypes?: OfferType[] | null
   initialNiches?: Niche[]
+  /** Pro = świeży seed co refresh; Free = stały seed dzienny (daySeed) */
+  isPro?: boolean
+  daySeed?: number
 }
 
-export default function FeedView({ initialMode = 'products', initialOfferTypes, initialNiches }: Props) {
+export default function FeedView({ initialMode = 'products', initialOfferTypes, initialNiches, isPro = false, daySeed = 0 }: Props) {
   const offerTypes = initialOfferTypes && initialOfferTypes.length ? initialOfferTypes : null
   const preferredNiches = initialNiches && initialNiches.length ? initialNiches : null
-  // seed sesji — raz na montaż; stały przez całe scrollowanie (brak duplikatów)
-  const [seed] = useState(() => Math.floor(Math.random() * 2_000_000_000))
+  // Pro: seed losowany przy montażu (świeże co refresh). Free: stały seed dzienny
+  // (ten sam zestaw cały dzień, nowy jutro). Default free.
+  const [seed] = useState(() => (isPro ? Math.floor(Math.random() * 2_000_000_000) : daySeed))
   // źródło reklam — TikTok wizualnie (mock/„wkrótce"), feed leci z Facebooka
   const [source, setSource] = useState<FeedSource>('facebook')
 
