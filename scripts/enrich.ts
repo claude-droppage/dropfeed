@@ -226,7 +226,6 @@ async function main() {
   console.log('Pobieranie landingów…')
   const landings = await mapPool(todo, 10, async (r) => fetchLanding(snapshotText(r.payload.snapshot as Json).landingUrl))
   const landingByAd = new Map(todo.map((r, i) => [r.ad_archive_id, landings[i]]))
-  const GATE_DROP_UNKNOWN = false // toggle: true → unknown też dropuj (ostro)
 
   // 3) Batch do Claude Haiku
   console.log('Wysyłanie batcha do Claude Haiku…')
@@ -287,16 +286,15 @@ async function main() {
   }
   const cands: Cand[] = []
   const processedIds: string[] = [] // wszystkie sklasyfikowane (włączone + odcięte capem)
-  let droppedNonShopify = 0
   for (const r of todo) {
     const c = cls.get(r.ad_archive_id)
     if (!c) continue
-    processedIds.push(r.ad_archive_id) // oznacz processed (nie retry), nawet gdy bramka odrzuci
-    // GATE Shopify: confirmed non_shopify NIE wpada; unknown wpada+flaga (toggle GATE_DROP_UNKNOWN)
+    processedIds.push(r.ad_archive_id)
+    // v2: NIE dropujemy przy ingescie — wszystko wpada TAGOWANE (platform/landing_type),
+    // filtr „eligible" (tylko shopify, bez beauty/non-produktów) jest na warstwie zapytań
+    // (is_eligible_product → product_winners + feed_shuffle). Odwracalne, bez utraty danych.
+    // [TOGGLE na potem: hard-drop dla oszczędności miejsca — GATE_DROP_UNKNOWN/non_shopify.]
     const land = landingByAd.get(r.ad_archive_id) ?? { text: '', platform: 'unknown' as Platform, landing_type: 'other' as LandingType }
-    if (land.platform === 'non_shopify' || (GATE_DROP_UNKNOWN && land.platform === 'unknown')) {
-      droppedNonShopify++; continue
-    }
     const s = r.payload.snapshot as Json
     const pid = str(s.page_id) ?? str(r.payload.page_id)
     if (!pid) continue
@@ -312,7 +310,6 @@ async function main() {
     })
     cands.push({ r, c, pid, brandId: uuidv5('brand:' + pid), heat, age, isActive, countries, total, new14, platform: land.platform, landing_type: land.landing_type })
   }
-  if (droppedNonShopify) console.log(`Gate Shopify: odrzucono ${droppedNonShopify} reklam non_shopify`)
 
   // Obecne liczby reklam/markę (limit 10 w bazie)
   const brandIds = [...new Set(cands.map((x) => x.brandId))]
