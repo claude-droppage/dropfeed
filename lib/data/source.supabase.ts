@@ -418,6 +418,7 @@ function mapWinner(r: Record<string, unknown>): ProductWinner {
     price: n(r.price),
     offerUrl: (r.offer_url as string) ?? undefined,
     storeUrl: (r.store_url as string) ?? undefined,
+    pageId: (r.page_id as string) ?? undefined,
     adCount: (r.ad_count as number) ?? 0,
     oldestAge: (r.oldest_age as number) ?? 0,
     newestAge: (r.newest_age as number) ?? 0,
@@ -464,7 +465,7 @@ export async function getProductWinners(limit = 60, country?: string, tiered = t
 
 interface RawDetail {
   id: string; name: string; niche: string; price: number | null; offer_url: string | null
-  brand_name: string; store_url: string | null; ad_count: number; heat: number | null
+  brand_name: string; store_url: string | null; page_id: string | null; ad_count: number; heat: number | null
   oldest_age: number | null; newest_age: number | null; markets: string[] | null
   formats: string[] | null
   ads: { id: string; thumb_url: string | null; creative_url: string | null; heat: number; format: AdFormat }[]
@@ -498,7 +499,10 @@ export async function getProductDetail(id: string): Promise<ProductDetail | unde
     markets: (r.markets ?? ['PL']).map(flag),
     formats: formatsLabel(r.formats),
     ads,
-    adLibraryUrl: `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(r.name)}`,
+    // link → STRONA MARKI (view_all_page_id, country=ALL); brak page_id → keyword search
+    adLibraryUrl: r.page_id
+      ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=${r.page_id}`
+      : `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(r.name)}`,
   }
 }
 

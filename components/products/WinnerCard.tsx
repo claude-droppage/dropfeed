@@ -8,6 +8,11 @@ const FLAG: Record<string, string> = { PL: '🇵🇱', US: '🇺🇸', GB: '🇬
 const flag = (c?: string) => (c ? FLAG[c.toUpperCase()] ?? '🌍' : '🌍')
 const fmt = (n?: number | null) => (n == null ? '—' : n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',')} tys.` : String(Math.round(n)))
 const isMp4 = (u?: string) => !!u && /\.(mp4|webm|mov)(\?|$)/i.test(u)
+// link „reklamy" → strona marki (view_all_page_id, country=ALL); brak page_id → keyword search
+const adLibUrl = (pageId?: string, name?: string) =>
+  pageId
+    ? `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=${pageId}`
+    : `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(name ?? '')}`
 
 // reason chips wg realnego sygnału (mint=skala, blue=walidacja/cross, amber=świeży)
 function Chips({ w }: { w: ProductWinner }) {
@@ -81,10 +86,12 @@ export default function WinnerCard({ w, onOpen }: { w: ProductWinner; onOpen: ()
           {w.price != null && <><span className="text-text-lo">·</span><span className="text-text-hi font-semibold">{w.price} zł</span></>}
         </div>
 
-        {/* akcje */}
+        {/* akcje — „reklamy" → STRONA MARKI w FB Ad Library (view_all_page_id, country=ALL) */}
         <div className="flex items-center gap-3 mt-2.5">
-          <button type="button" onClick={(e) => { e.stopPropagation(); onOpen() }}
-            className="text-[11px] font-semibold text-heat hover:underline">reklamy tego produktu →</button>
+          <a href={adLibUrl(w.pageId, w.name)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-heat hover:underline">
+            {w.pageId ? 'reklamy marki' : 'szukaj reklam'} <ExternalLink size={11} />
+          </a>
           {w.offerUrl && (
             <a href={w.offerUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
               className="inline-flex items-center gap-1 text-[11px] text-text-mid hover:text-text-hi ml-auto">

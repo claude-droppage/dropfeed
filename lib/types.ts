@@ -222,6 +222,8 @@ export interface ProductWinner {
   price?: number
   offerUrl?: string
   storeUrl?: string
+  /** fb_page_id marki → link do strony marki w FB Ad Library (view_all_page_id) */
+  pageId?: string
   /** liczba aktywnych reklam produktu */
   adCount: number
   /** staż najstarszej aktywnej reklamy (dni chodzi) */
