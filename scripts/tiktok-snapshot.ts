@@ -50,7 +50,7 @@ const ARCHIVE_AFTER_DAYS = 14
 // Wykluczenie kategorii konsumpcyjnych (Część C) — źródło prawdy listy słów.
 // Mirror w migracji 0020 (backfill) + CLAUDE.md. Dopasowanie po tytule (US → EN+PL).
 // prefix-match (łapie polską fleksję: „kolagenu", „kremu"). Mirror SQL: is_excluded_title (migr. 0024).
-const EXCL_RE = /\b(cream|serum|ointment|balm|lotion|supplement|vitamin|collagen|capsule|gummies|gummy|skincare|krem|maść|masc|balsam|suplement|witamin|kolagen|bronzer|sunscreen|sunblock)|face ?mask|self[ -]?tan|samoopalacz|samoopalaj|przeciws[lł]oneczn|after[ -]?sun|\bspf/i
+const EXCL_RE = /\b(cream|serum|ointment|balm|lotion|supplement|vitamin|collagen|capsule|gummies|gummy|skincare|krem|maść|masc|balsam|suplement|witamin|kolagen|bronzer|sunscreen|sunblock)|face ?mask|self[ -]?tan|samoopalacz|samoopalaj|przeciws[lł]oneczn|after[ -]?sun|\bspf|sonnenschutz|sonnencreme|selbstbr[äa]uner|cr[èe]me solaire|autobronzant|protector solar|autobronceador/i
 const isExcluded = (title: string | null) => EXCL_RE.test((title || '').toLowerCase())
 
 const toInt = (x: unknown) => { const n = parseInt(String(x ?? '').replace(/[^0-9]/g, ''), 10); return Number.isFinite(n) ? n : null }
