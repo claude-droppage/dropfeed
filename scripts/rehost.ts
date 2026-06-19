@@ -61,17 +61,22 @@ function extFor(ct: string, format: string): string {
 }
 
 async function download(url: string): Promise<{ buf: Uint8Array; ct: string } | null> {
-  try {
-    const ctrl = new AbortController()
-    const t = setTimeout(() => ctrl.abort(), 20000)
-    const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 swipespy-rehost' } })
-    clearTimeout(t)
-    if (!res.ok) return null
-    const ct = res.headers.get('content-type') ?? ''
-    const buf = new Uint8Array(await res.arrayBuffer())
-    if (!buf.length) return null
-    return { buf, ct }
-  } catch { return null }
+  // retry: FB CDN bywa przejściowo 403/timeout — bez retry zostawały FB-URL-e, które
+  // następnego dnia wygasały → czarne karty. 3 próby z backoffem ratują transienty.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const ctrl = new AbortController()
+      const t = setTimeout(() => ctrl.abort(), 20000)
+      const res = await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 swipespy-rehost' } })
+      clearTimeout(t)
+      if (!res.ok) { if (attempt < 3) { await new Promise((r) => setTimeout(r, 1500 * attempt)); continue } return null }
+      const ct = res.headers.get('content-type') ?? ''
+      const buf = new Uint8Array(await res.arrayBuffer())
+      if (!buf.length) return null
+      return { buf, ct }
+    } catch { if (attempt < 3) { await new Promise((r) => setTimeout(r, 1500 * attempt)); continue } return null }
+  }
+  return null
 }
 
 async function putR2(key: string, buf: Uint8Array, ct: string): Promise<boolean> {
