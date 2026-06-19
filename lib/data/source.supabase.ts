@@ -9,7 +9,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import { FEED_PER_BRAND, FEED_MIN_AGE_DAYS, FEED_NICHE_WEIGHT, FEED_JITTER_AMP, FEED_DISCOVERY_EVERY, FEED_FRESHNESS_WEIGHT } from '@/lib/types'
+import { FEED_MIN_AGE_DAYS } from '@/lib/types'
 import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult, ShopFeed, ProductWinner } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
@@ -142,23 +142,17 @@ interface FeedRow extends AdRow {
  * nie chudła po stronie klienta). hasMore = czy strona przyszła pełna.
  */
 export async function getFeedPage(
-  { offset, limit, offerTypes, seed, preferredNiches }: FeedPageParams,
+  { offset, limit, offerTypes, seed }: FeedPageParams,
 ): Promise<FeedPage> {
-  // RPC feed_page: limit/markę + przeplatanie + filtr is_active/staż/offerType +
-  // seed-jitter (rotacja, stabilna w sesji) + miękkie ważenie nisz + różnorodność.
-  // Zwraca gotowy jsonb (ad+brand+product) w kolejności — bez embeddingu PostgREST.
-  const { data, error } = await supabase.rpc('feed_page', {
+  // Swipe feed v2 (RPC feed_shuffle): ten sam pool eligible co winnerzy (tylko shopify,
+  // bez beauty/blocklisty/non-produktów), BEZ scoringu — czyste losowanie md5(ad_id||seed).
+  // Seed per wejście/refresh (FeedView, stały w sesji) → paginacja bez duplikatów.
+  const { data, error } = await supabase.rpc('feed_shuffle', {
     p_offset: offset,
     p_limit: limit,
-    p_per_brand: FEED_PER_BRAND,
+    p_seed: seed ?? 0,
     p_offer_types: offerTypes && offerTypes.length ? offerTypes : null,
     p_min_age_days: FEED_MIN_AGE_DAYS,
-    p_seed: seed ?? 0,
-    p_preferred_niches: preferredNiches && preferredNiches.length ? preferredNiches : null,
-    p_niche_weight: FEED_NICHE_WEIGHT,
-    p_jitter_amp: FEED_JITTER_AMP,
-    p_discovery_every: FEED_DISCOVERY_EVERY,
-    p_freshness_weight: FEED_FRESHNESS_WEIGHT,
   })
 
   if (error) fail('getFeedPage', error.message)
