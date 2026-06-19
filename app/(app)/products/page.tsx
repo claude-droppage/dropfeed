@@ -2,12 +2,11 @@ import { getWinnerDays, getProductWinnersForDate, getProductWinners } from '@/li
 import ProductsView from '@/components/products/ProductsView'
 
 export default async function ProductsPage() {
-  const realTodayISO = new Date().toISOString().slice(0, 10) // UTC „dziś" — kotwica okna
-  const days = await getWinnerDays(7) // [{day, thumb}] malejąco
-  const newest = days[0]?.day ?? realTodayISO
-  const [todayWinners, tail] = await Promise.all([
-    getProductWinnersForDate(newest),
-    getProductWinners(60, undefined, false, false), // ogon = pełna lista rise-first (bez dedup okna)
+  const realTodayISO = new Date().toISOString().slice(0, 10) // UTC „dziś" = kotwica + domyślny wybór
+  const [days, todayWinners, tail] = await Promise.all([
+    getWinnerDays(7),                                  // [{day, thumb}] malejąco (do miniatur kalendarza)
+    getProductWinnersForDate(realTodayISO),            // zwycięzcy DZIŚ (pusto → uczciwy stan)
+    getProductWinners(60, undefined, false, false),    // ogon = pełna lista rise-first
   ])
-  return <ProductsView realTodayISO={realTodayISO} days={days} newestDay={newest} todayWinners={todayWinners} tail={tail} />
+  return <ProductsView realTodayISO={realTodayISO} days={days} todayWinners={todayWinners} tail={tail} />
 }
