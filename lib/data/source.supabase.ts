@@ -10,7 +10,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { FEED_MIN_AGE_DAYS } from '@/lib/types'
-import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult, ShopFeed, ProductWinner } from '@/lib/types'
+import type { FeedItem, Brand, Product, Ad, Niche, OfferType, FeedPage, FeedPageParams, ProductCard, ProductDetail, AdMini, DiscoverySignal, AdFormat, TikTokShopResult, TikTokShopItem, ShopMarket, TikTokShopProductView, TikTokShopVideo, TikTokShopCreator, PropozycjaItem, PropozycjeResult, ShopFeed, ProductWinner, ClusterGem } from '@/lib/types'
 
 // ─── Kształt wierszy zwracanych przez Supabase ─────────────────────────────
 interface BrandRow {
@@ -63,6 +63,7 @@ interface AdRow {
   variants_count: number | null
   country: string | null
   language: string | null
+  cluster_id: number | null
 }
 
 // ─── Mappery DB → typy domenowe ────────────────────────────────────────────
@@ -121,6 +122,7 @@ function mapAd(r: AdRow): Ad {
     variantsCount: r.variants_count ?? undefined,
     country: r.country ?? undefined,
     language: r.language ?? undefined,
+    clusterId: r.cluster_id ?? undefined,
   }
 }
 
@@ -449,6 +451,24 @@ export async function getProductWinnersForDate(date: string): Promise<ProductWin
   const { data, error } = await supabase.rpc('product_winners_for_date', { p_date: date })
   if (error || !Array.isArray(data)) return []
   return (data as Record<string, unknown>[]).map(mapWinner)
+}
+
+/** Perełki klastra (gem_score) — podgląd /preview (read-only). aggro 0.4-0.8. */
+export async function getClusterGems(aggro = 0.6, limit = 12): Promise<ClusterGem[]> {
+  const { data, error } = await supabase.rpc('fb_cluster_gems', { p_limit: limit, p_aggro: aggro })
+  if (error || !Array.isArray(data)) return []
+  return (data as Record<string, unknown>[]).map((r) => ({
+    clusterId: r.cluster_id as number,
+    repName: (r.rep_name as string) ?? '',
+    repBrand: (r.rep_brand as string) ?? undefined,
+    repThumb: (r.rep_thumb as string) ?? undefined,
+    nSellers: (r.n_sellers as number) ?? 0,
+    nAds: (r.n_ads as number) ?? 0,
+    newAds7d: (r.new_ads_7d as number) ?? 0,
+    daysFirst: (r.days_first as number) ?? 0,
+    crossTiktok: Boolean(r.cross_tiktok),
+    gemScore: Number(r.gem_score ?? 0),
+  }))
 }
 
 /** Zwycięzcy: tiered=true → kuracja 70/30; false → ogon rise-first. dedupWindow=true →

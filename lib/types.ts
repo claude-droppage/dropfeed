@@ -70,6 +70,22 @@ export interface Ad {
   country?: string
   /** język reklamy wykryty przez Haiku (pl/en/de…) — pod przyszły filtr */
   language?: string
+  /** klaster kreacji (pHash) — do podglądu perełek/reorderu feedu */
+  clusterId?: number
+}
+
+/** Perełka klastra (gem_score) — podgląd /preview (read-only). */
+export interface ClusterGem {
+  clusterId: number
+  repName: string
+  repBrand?: string
+  repThumb?: string
+  nSellers: number
+  nAds: number
+  newAds7d: number
+  daysFirst: number
+  crossTiktok: boolean
+  gemScore: number
 }
 
 export interface User {
