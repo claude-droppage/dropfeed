@@ -19,7 +19,8 @@
     "shopify:tag": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/shopify-tag.ts",
     "phash": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/phash.ts",
     "ab:preview": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ab-preview.ts",
-    "tiktok:recon": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/tiktok-recon.ts"
+    "tiktok:recon": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/tiktok-recon.ts",
+    "tiktok:sweep": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/tiktok-sweep.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",

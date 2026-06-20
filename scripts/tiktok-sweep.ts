@@ -219,6 +219,19 @@ async function main() {
   await supabase.from('tiktok_organic_seeds').update({ last_used_at: new Date().toISOString() }).in('seed', seeds)
 
   const crossN = sellers.filter((s) => fbDomains.has(s.storeDomain)).length
-  console.log(`Zapisani: ${saved} | nowi: ${newCount} | cross-source (FB×TikTok): ${crossN} | koszt Apify $${apifyCost.toFixed(4)}`)
+
+  // produktywność per seed (verified/seed) + total w bazie
+  const perSeed = new Map<string, number>()
+  for (const s of seeds) perSeed.set(s, 0)
+  for (const s of sellers) { const k = seeds.find((q) => s.sourceSeed === q || s.sourceSeed.replace(/^#/, '') === q) ?? s.sourceSeed; perSeed.set(k, (perSeed.get(k) ?? 0) + 1) }
+  const { count: totalDb } = await supabase.from('tiktok_organic_sellers').select('*', { count: 'exact', head: true })
+
+  console.log(`\n══════ RAPORT RUNU ══════`)
+  console.log(`Wideo: ${videos} | autorzy: ${authors.size} | profile: ${top.length} | zweryfikowani: ${sellers.length} | zapisani: ${saved}`)
+  console.log(`Nowi zweryfikowani: ${newCount} | sprzedawców w bazie łącznie: ${totalDb ?? '?'} | cross-source FB×TikTok: ${crossN}`)
+  console.log(`Produktywność per seed (verified/seed):`)
+  for (const [s, n] of [...perSeed.entries()].sort((a, b) => b[1] - a[1])) console.log(`  ${n}  ${s}`)
+  console.log(`Koszt Apify za run: $${apifyCost.toFixed(4)}  (sweep $${sweepCost.toFixed(4)} + profile $${profCost.toFixed(4)})`)
+  console.log(`═════════════════════════`)
 }
 main().catch((e) => { console.error(e); process.exit(1) })
