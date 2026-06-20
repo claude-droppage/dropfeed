@@ -1,10 +1,12 @@
 /**
  * Codzienny dopływ nowych reklam (Część 2). Run Apify PER KRAJ (tagowanie marketu),
- * wagi 80/20, rotacja nisz×rynków między dniami.
+ * rotacja nisz×rynków między dniami.
  *
  * scrape_config.rotation_group: 0=codziennie (PL), 1=parzysty dzień (US,DE,ES),
  * 2=nieparzysty (UK,FR). Dzień wybierany po parzystości dnia miesiąca (UTC).
- * SCRAPE_COUNT (200) dzielony między kraje dnia wg wag (PL > EN > secondary).
+ * SCRAPE_DEPTH (4) = ile reklam per słowo (limitPerSource); count kraju =
+ * liczba_słów × DEPTH. Głębokość, nie liczba słów, jest dźwignią świeżości
+ * (płytko = codziennie te same top-reklamy; głębiej = więcej NOWYCH).
  * Po każdym runie woła ingest z parametrem country → raw_ads.country.
  *
  * Env: APIFY_TOKEN, SUPABASE_*, INGEST_WEBHOOK_SECRET.
@@ -34,10 +36,13 @@ const { NEXT_PUBLIC_SUPABASE_URL: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: SERVI
 for (const [k, v] of Object.entries({ SUPABASE_URL, SERVICE_ROLE, APIFY_TOKEN, INGEST_WEBHOOK_SECRET })) {
   if (!v) { console.error(`✗ Brak ${k}`); process.exit(1) }
 }
-const COUNT = parseInt(env.SCRAPE_COUNT ?? '200', 10)
+// GŁĘBOKOŚĆ per słowo kluczowe = limitPerSource. To jest dźwignia świeżości:
+// płytko (≈2) zwraca codziennie te same „top” reklamy (~85% duplikatów); głębiej
+// sięga dalej w wyniki = znacznie więcej NOWYCH. Koszt ~liniowy (~$0.0008/reklama).
+// depth=4 ≈ 150–200 nowych/dzień, ~$13/mc scrape (mieści się w Apify STARTER $29
+// obok brand:totals ~$11 + TikTok ~$0.18). Strojalne przez SCRAPE_DEPTH.
+const DEPTH = parseInt(env.SCRAPE_DEPTH ?? '4', 10)
 const ACTOR = 'curious_coder~facebook-ads-library-scraper'
-// wagi alokacji count per kraj (~80/20 main/secondary) — strojalne
-const WEIGHT: Record<string, number> = { PL: 4, US: 3, UK: 3, DE: 1, FR: 1, ES: 1 }
 
 const supabase = createClient(SUPABASE_URL!, SERVICE_ROLE!, { auth: { persistSession: false, autoRefreshToken: false } })
 
@@ -92,13 +97,15 @@ async function main() {
     if (!byCountry.has(cc)) byCountry.set(cc, [])
     byCountry.get(cc)!.push(c.query)
   }
-  const totalW = [...byCountry.keys()].reduce((s, cc) => s + (WEIGHT[cc] ?? 1), 0)
-  console.log(`Dzień ${new Date().getUTCDate()} (grupa ${dayGroup}); kraje: ${[...byCountry.keys()].join(', ')}; count=${COUNT}`)
+  // Alokacja oparta na GŁĘBOKOŚCI: każde słowo dostaje DEPTH reklam (limitPerSource),
+  // więc count kraju = liczba_słów × DEPTH. Więcej słów = naturalnie więcej budżetu.
+  const target = [...byCountry.values()].reduce((s, q) => s + q.length * DEPTH, 0)
+  console.log(`Dzień ${new Date().getUTCDate()} (grupa ${dayGroup}); kraje: ${[...byCountry.keys()].join(', ')}; depth=${DEPTH}; cel≈${target} reklam`)
 
   let ok = 0
   for (const [cc, queries] of byCountry) {
-    const cnt = Math.max(10, Math.round((COUNT * (WEIGHT[cc] ?? 1)) / totalW))
-    console.log(`→ ${cc}: ${queries.length} słów, count=${cnt}`)
+    const cnt = queries.length * DEPTH
+    console.log(`→ ${cc}: ${queries.length} słów × ${DEPTH} = count=${cnt}`)
     if (await runCountry(cc, queries, cnt)) ok++
   }
   // Twardy błąd, gdy WSZYSTKIE kraje padły (np. „Monthly usage hard limit exceeded")
