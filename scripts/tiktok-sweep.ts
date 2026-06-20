@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
+import { AwsClient } from 'aws4fetch'
 import { detectPlatform } from '../lib/shopify.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -78,6 +79,38 @@ async function profileBios(handles: string[]): Promise<{ map: Map<string, string
 }
 
 export interface VerifiedSeller extends Author { storeUrl: string; storeDomain: string }
+
+// ── R2 (reuse wzorca z rehost.ts: download z retry/backoff + putR2) ───────
+const { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT, R2_BUCKET, R2_PUBLIC_BASE } = E
+const aws = new AwsClient({ accessKeyId: R2_ACCESS_KEY_ID!, secretAccessKey: R2_SECRET_ACCESS_KEY!, service: 's3', region: 'auto' })
+async function dl(url: string): Promise<Uint8Array | null> {
+  for (let a = 0; a < 3; a++) {
+    try { const r = await fetch(url, { signal: AbortSignal.timeout(20000) }); if (r.ok) return new Uint8Array(await r.arrayBuffer()) } catch { /* transient */ }
+    await new Promise((x) => setTimeout(x, 400 * (a + 1)))
+  }
+  return null
+}
+async function coverToR2(handle: string, coverUrl: string): Promise<string | null> {
+  if (!coverUrl) return null
+  const buf = await dl(coverUrl); if (!buf) return null
+  const key = `tiktok-covers/${handle.replace(/[^a-z0-9_.-]/gi, '_')}.jpg`
+  try {
+    const res = await aws.fetch(`${R2_ENDPOINT}/${R2_BUCKET}/${key}`, { method: 'PUT', body: buf, headers: { 'content-type': 'image/jpeg' } })
+    return res.ok ? `${R2_PUBLIC_BASE}/${key}` : null
+  } catch { return null }
+}
+
+/** Domeny sklepów z FB (offer_url winnerów) — do cross_source. */
+async function fbStoreDomains(): Promise<Set<string>> {
+  const set = new Set<string>()
+  for (let off = 0; ; off += 1000) {
+    const { data } = await supabase.from('products').select('offer_url').not('offer_url', 'is', null).range(off, off + 999)
+    const b = (data as { offer_url: string }[]) ?? []
+    for (const r of b) { const d = normDomain(r.offer_url); if (d) set.add(d) }
+    if (b.length < 1000) break
+  }
+  return set
+}
 
 async function apifyRun(act: string, input: unknown, ms = 600000): Promise<{ items: Record<string, unknown>[]; cost: number }> {
   const r = await fetch(`https://api.apify.com/v2/acts/${act}/runs?token=${TOKEN}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) })
@@ -153,8 +186,39 @@ async function main() {
     if (store) verified.push({ ...a, storeUrl: store, storeDomain: normDomain(store) })
   })
   console.log(`Zweryfikowani (bio → Shopify): ${verified.length}`)
-  // Cz.4-5: zapis + cross-source + cover R2 + log + raport
+
+  // dedup w obrębie runu po store_domain (jeden sklep = jeden rekord; najlepszy playCount wygrywa)
+  const byStore = new Map<string, VerifiedSeller>()
+  for (const v of verified.sort((a, b) => b.bestPlayCount - a.bestPlayCount)) if (!byStore.has(v.storeDomain)) byStore.set(v.storeDomain, v)
+  const sellers = [...byStore.values()]
+
+  // cross_source: domena sklepu == domena z offer_url winnerów FB
+  const fbDomains = await fbStoreDomains()
+  // ile to NOWI (przed upsertem) — po store_domain
+  const { data: existRows } = await supabase.from('tiktok_organic_sellers').select('store_domain')
+  const existing = new Set((existRows as { store_domain: string }[] ?? []).map((r) => r.store_domain))
+  const newCount = sellers.filter((s) => !existing.has(s.storeDomain)).length
+
+  // cover najlepszego filmiku → R2 + upsert (per rekord; onConflict store_domain; first_seen tylko na insert)
+  let saved = 0
+  await pool(sellers, 6, async (s) => {
+    const cover = await coverToR2(s.handle, s.bestCover)
+    const { error } = await supabase.from('tiktok_organic_sellers').upsert({
+      handle: s.handle, store_url: s.storeUrl, store_domain: s.storeDomain,
+      best_video_url: s.bestVideoUrl, best_video_cover_r2: cover, best_video_playcount: s.bestPlayCount,
+      best_video_posted_at: s.bestPostedAt, last_seen: new Date().toISOString(),
+      cross_source: fbDomains.has(s.storeDomain), source_seed: s.sourceSeed,
+    }, { onConflict: 'store_domain' })
+    if (!error) saved++
+    else console.error(`  ✗ upsert @${s.handle} (${s.storeDomain}): ${error.message}`)
+  })
+
+  // log runu + rotacja seedów (last_used_at)
   const apifyCost = sweepCost + profCost
-  void apifyCost
+  await supabase.from('tiktok_organic_runs').insert({ seeds, videos, profiles: top.length, verified: sellers.length, new_sellers: newCount })
+  await supabase.from('tiktok_organic_seeds').update({ last_used_at: new Date().toISOString() }).in('seed', seeds)
+
+  const crossN = sellers.filter((s) => fbDomains.has(s.storeDomain)).length
+  console.log(`Zapisani: ${saved} | nowi: ${newCount} | cross-source (FB×TikTok): ${crossN} | koszt Apify $${apifyCost.toFixed(4)}`)
 }
 main().catch((e) => { console.error(e); process.exit(1) })
