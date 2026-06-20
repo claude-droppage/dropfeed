@@ -453,6 +453,27 @@ export async function getProductWinnersForDate(date: string): Promise<ProductWin
   return (data as Record<string, unknown>[]).map(mapWinner)
 }
 
+/** Organiczni sprzedawcy TikTok (zweryfikowani: bio → Shopify) — sort po wyświetleniach. */
+export async function getTikTokSellers(limit = 60): Promise<import('@/lib/types').TikTokSeller[]> {
+  const { data, error } = await supabase
+    .from('tiktok_organic_sellers')
+    .select('handle, store_url, store_domain, best_video_url, best_video_cover_r2, best_video_playcount, best_video_posted_at, cross_source, source_seed')
+    .order('best_video_playcount', { ascending: false, nullsFirst: false })
+    .limit(limit)
+  if (error || !Array.isArray(data)) return []
+  return (data as Record<string, unknown>[]).map((r) => ({
+    handle: r.handle as string,
+    storeUrl: (r.store_url as string) ?? undefined,
+    storeDomain: (r.store_domain as string) ?? '',
+    bestVideoUrl: (r.best_video_url as string) ?? undefined,
+    bestVideoCover: (r.best_video_cover_r2 as string) ?? undefined,
+    bestVideoPlaycount: r.best_video_playcount != null ? Number(r.best_video_playcount) : undefined,
+    bestVideoPostedAt: (r.best_video_posted_at as string) ?? undefined,
+    crossSource: Boolean(r.cross_source),
+    sourceSeed: (r.source_seed as string) ?? undefined,
+  }))
+}
+
 /** Perełki klastra (gem_score) — podgląd /preview (read-only). aggro 0.4-0.8. */
 export async function getClusterGems(aggro = 0.6, limit = 12): Promise<ClusterGem[]> {
   const { data, error } = await supabase.rpc('fb_cluster_gems', { p_limit: limit, p_aggro: aggro })

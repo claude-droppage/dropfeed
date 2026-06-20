@@ -3,20 +3,23 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import type { ProductWinner } from '@/lib/types'
+import type { ProductWinner, TikTokSeller } from '@/lib/types'
 import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 import { getProductWinnersForDate } from '@/lib/data/source'
 import WinnerCard from './WinnerCard'
+import TikTokSellersView from './TikTokSellersView'
 
 const WD = ['ndz', 'pon', 'wt', 'śr', 'czw', 'pt', 'sob']
 
 export default function ProductsView({
-  realTodayISO, days, todayWinners,
+  realTodayISO, days, todayWinners, sellers,
 }: {
   realTodayISO: string
   days: { day: string; thumb?: string }[]
   todayWinners: ProductWinner[]
+  sellers: TikTokSeller[]
 }) {
+  const [tab, setTab] = useState<'propozycje' | 'sellers'>('propozycje')
   const router = useRouter()
   const open = (id: string) => router.push(`/products/${id}`)
   // mapa dzień → miniatura (Minea-style kafelki); obecność = ma snapshot
@@ -63,6 +66,26 @@ export default function ProductsView({
         <div className="flex items-center justify-between mb-1 md:hidden">
           <SwipeSpyLogo className="text-[1.15rem]" />
         </div>
+
+        {/* zakładki */}
+        <div className="flex gap-2 mb-4 mt-1">
+          {([['propozycje', 'Dzisiejsze propozycje'], ['sellers', 'Sprzedawcy TikTok']] as const).map(([k, label]) => (
+            <button key={k} type="button" onClick={() => setTab(k)}
+              className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
+                tab === k ? 'bg-heat text-bg-void' : 'bg-bg-surface border border-line text-text-mid hover:text-text-hi'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'sellers' ? (
+          <>
+            <h1 className="text-lg md:text-[22px] font-bold tracking-tight text-text-hi">Sprzedawcy TikTok</h1>
+            <p className="text-[12px] text-text-mid mt-0.5 mb-4">Organiczni sprzedawcy ze zweryfikowanym sklepem Shopify.</p>
+            <TikTokSellersView sellers={sellers} />
+          </>
+        ) : (
+        <>
         <h1 className="text-lg md:text-[22px] font-bold tracking-tight text-text-hi">Top 10 na dziś</h1>
         <p className="text-[12px] text-text-mid mt-0.5 mb-4">Codzienni zwycięzcy z reklam — nowe i rosnące, z walidacją (ilu reklamuje). Realne liczby, nigdy $.</p>
 
@@ -122,6 +145,8 @@ export default function ProductsView({
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
             {winners.map((w) => <WinnerCard key={w.productId} w={w} onOpen={() => open(w.productId)} />)}
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

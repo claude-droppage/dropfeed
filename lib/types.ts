@@ -273,6 +273,19 @@ export interface ProductWinner {
   score: number
 }
 
+/** Organiczny sprzedawca TikTok (bio → zweryfikowany sklep Shopify). */
+export interface TikTokSeller {
+  handle: string
+  storeUrl?: string
+  storeDomain: string
+  bestVideoUrl?: string
+  bestVideoCover?: string
+  bestVideoPlaycount?: number
+  bestVideoPostedAt?: string
+  crossSource: boolean
+  sourceSeed?: string
+}
+
 export type ShopMarket = 'PL' | 'US'
 
 export interface TikTokShopItem {

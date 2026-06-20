@@ -34,3 +34,4 @@ export const getWinnerDays = impl.getWinnerDays
 export const getProductWinnersForDate = impl.getProductWinnersForDate
 export const getProductWinners = impl.getProductWinners
 export const getClusterGems = impl.getClusterGems
+export const getTikTokSellers = impl.getTikTokSellers

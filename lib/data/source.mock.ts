@@ -72,3 +72,4 @@ export async function getWinnerDays(): Promise<{ day: string; thumb?: string }[]
 export async function getProductWinnersForDate(): Promise<import('@/lib/types').ProductWinner[]> { return [] }
 export async function getProductWinners(_l?: number, _c?: string, _n?: number): Promise<import('@/lib/types').ProductWinner[]> { return [] }
 export async function getClusterGems(_a?: number, _l?: number): Promise<import('@/lib/types').ClusterGem[]> { return [] }
+export async function getTikTokSellers(_l?: number): Promise<import('@/lib/types').TikTokSeller[]> { return [] }
