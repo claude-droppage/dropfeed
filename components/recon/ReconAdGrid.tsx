@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ArrowUpRight } from 'lucide-react'
 
 export interface ReconAd {
   ad_id: string
@@ -22,8 +23,16 @@ function days(a: string | null, b: string | null): number | null {
 function AdCard({ ad }: { ad: ReconAd }) {
   const [broken, setBroken] = useState(false)
   const live = days(ad.first_shown, ad.last_shown)
+  // Link do strony reklamy w bibliotece TikToka — deterministyczny z ad_id (nie do sklepu;
+  // destynacja reklamy nie jest scrapowalna).
+  const libUrl = `https://library.tiktok.com/ads/detail/?ad_id=${ad.ad_id}`
   return (
-    <div className="rounded-2xl border border-line bg-bg-surface overflow-hidden">
+    <a
+      href={libUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-2xl border border-line bg-bg-surface overflow-hidden transition-colors hover:border-text-lo"
+    >
       <div className="relative aspect-[9/12] bg-bg-raised">
         {ad.media_url && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -46,7 +55,10 @@ function AdCard({ ad }: { ad: ReconAd }) {
         )}
       </div>
       <div className="px-3 py-3">
-        <div className="text-text-hi text-sm font-medium truncate">{ad.advertiser ?? '—'}</div>
+        <div className="flex items-center gap-1 text-text-hi text-sm font-medium">
+          <span className="truncate">{ad.advertiser ?? '—'}</span>
+          <ArrowUpRight size={13} className="text-text-lo shrink-0" />
+        </div>
         <div className="mt-1.5 flex flex-wrap gap-1.5 font-mono text-[11px] text-text-mid">
           {ad.regions?.length ? (
             <span className="rounded-full bg-bg-raised px-2 py-0.5">{ad.regions.join(' ')}</span>
@@ -57,7 +69,7 @@ function AdCard({ ad }: { ad: ReconAd }) {
           ) : null}
         </div>
       </div>
-    </div>
+    </a>
   )
 }
 

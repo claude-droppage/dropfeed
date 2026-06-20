@@ -149,7 +149,11 @@ export default async function TikTokReconPage() {
 
         {/* Przykłady reklam */}
         <h2 className="text-text-hi text-lg font-semibold mt-10 mb-1">Przykłady zescrapowanych reklam</h2>
-        <p className="text-text-lo text-xs mb-4">Realne reklamy z biblioteki TikTok (EU). Dane = to, co faktycznie dostajemy z jednego scrape.</p>
+        <p className="text-text-lo text-xs mb-4">
+          Realne reklamy z biblioteki TikTok (EU). Dane = to, co faktycznie dostajemy z jednego scrape. Klik w kartę
+          otwiera <span className="text-text-mid">stronę reklamy w bibliotece TikToka</span> — to jedyny link, jaki mamy
+          (do sklepu/produktu reklama nie prowadzi w scrape).
+        </p>
         <ReconAdGrid ads={examples} />
 
         {/* Koszt */}
