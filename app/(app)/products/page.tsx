@@ -6,7 +6,7 @@ export default async function ProductsPage() {
   const [days, todayWinners, tail] = await Promise.all([
     getWinnerDays(7),                                  // [{day, thumb}] malejąco (do miniatur kalendarza)
     getProductWinnersForDate(realTodayISO),            // zwycięzcy DZIŚ (pusto → uczciwy stan)
-    getProductWinners(60, undefined, false, false),    // ogon = pełna lista rise-first
+    getProductWinners(60),    // ogon = pełna lista (usuwane w cz.3)
   ])
   return <ProductsView realTodayISO={realTodayISO} days={days} todayWinners={todayWinners} tail={tail} />
 }

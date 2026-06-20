@@ -471,10 +471,10 @@ export async function getClusterGems(aggro = 0.6, limit = 12): Promise<ClusterGe
   }))
 }
 
-/** Zwycięzcy: tiered=true → kuracja 70/30; false → ogon rise-first. dedupWindow=true →
- *  bez powtórek produktu/marki z ostatnich 6 dni (feed/Propozycje), false → pełny browse. */
-export async function getProductWinners(limit = 60, country?: string, tiered = true, dedupWindow = false): Promise<ProductWinner[]> {
-  const { data, error } = await supabase.rpc('product_winners', { p_limit: limit, p_country: country ?? null, p_tiered: tiered, p_dedup_window: dedupWindow })
+/** Dzienne propozycje: świeże (najnowszy ingest), nigdy niepowtórzone (NIE featured),
+ *  reklama ≥7 dni, dedup offer_url + 1/markę + niche-cap (domyślnie 3). Bez tieringu. */
+export async function getProductWinners(limit = 10, country?: string, nicheCap = 3): Promise<ProductWinner[]> {
+  const { data, error } = await supabase.rpc('product_winners', { p_limit: limit, p_country: country ?? null, p_niche_cap: nicheCap })
   if (error || !Array.isArray(data)) return []
   return (data as Record<string, unknown>[]).map(mapWinner)
 }

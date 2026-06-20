@@ -23,7 +23,7 @@ export default function PreviewView() {
 
   // stałe (niezależne od aggro) — raz
   useEffect(() => {
-    getProductWinners(12, undefined, true, false).then(setOldW)
+    getProductWinners(12).then(setOldW)
     getFeedPage({ offset: 0, limit: 24, seed: 123 }).then((p) => setFeed(p.items))
   }, [])
 
