@@ -13,6 +13,7 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 import { AwsClient } from 'aws4fetch'
+import Anthropic from '@anthropic-ai/sdk'
 import { detectPlatform } from '../lib/shopify.ts'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -20,6 +21,7 @@ const env: Record<string, string> = {}
 try { for (const l of readFileSync(resolve(root, '.env.local'), 'utf8').split('\n')) { const t = l.trim(); if (!t || t.startsWith('#')) continue; const e = t.indexOf('='); if (e > 0) env[t.slice(0, e).trim()] = t.slice(e + 1).trim() } } catch { /* CI */ }
 const E = { ...env, ...process.env }
 const supabase = createClient(E.NEXT_PUBLIC_SUPABASE_URL!, E.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } })
+const anthropic = new Anthropic({ apiKey: E.ANTHROPIC_API_KEY! })
 const TOKEN = E.APIFY_TOKEN!
 
 // ── parametry (strojalne env) ────────────────────────────────────────────
@@ -103,19 +105,23 @@ async function coverToR2(handle: string, coverUrl: string): Promise<string | nul
   } catch { return null }
 }
 
-/** Keyword do „Szukaj na AliExpress" = tytuł top-produktu sklepu (Shopify /products.json, $0). */
-function cleanQuery(title: string): string {
-  return title.split('|')[0].replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean).slice(0, 6).join(' ').trim()
-}
-async function topProductQuery(domain: string): Promise<string | null> {
-  if (!domain) return null
+/** Keyword do „Szukaj na AliExpress" = produkt z captionu NAJLEPSZEGO FILMIKU (nie sklepu),
+ *  oczyszczony Haiku. Jedno wywołanie na batch. Brak produktu w opisie → '' (chip znika). */
+async function extractAliQueries(items: { i: number; caption: string }[]): Promise<Map<number, string>> {
+  const out = new Map<number, string>()
+  if (!items.length) return out
   try {
-    const r = await fetch(`https://${domain}/products.json?limit=1`, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0' } })
-    if (!r.ok) return null
-    const j = await r.json() as { products?: { title?: string }[] }
-    const t = j.products?.[0]?.title
-    return t ? (cleanQuery(t) || null) : null
-  } catch { return null }
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5', max_tokens: 3000,
+      messages: [{ role: 'user', content: `Z każdego opisu filmiku TikTok wyciągnij FIZYCZNY produkt sprzedawany w filmie jako krótką GENERYCZNĄ angielską frazę do wyszukania na AliExpress (2-5 słów). BEZ nazw marek, BEZ hype, BEZ hashtagów. Jeśli opis nie nazywa wyraźnie fizycznego produktu, zwróć "".
+Zwróć WYŁĄCZNIE JSON: [{"i":<numer>,"q":"<fraza lub pusty string>"}]
+
+${JSON.stringify(items)}` }],
+    })
+    const txt = msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('').replace(/```json|```/g, '').trim()
+    for (const r of JSON.parse(txt) as { i: number; q: string }[]) out.set(r.i, (r.q || '').trim())
+  } catch (e) { console.error('✗ Haiku ali_query:', e instanceof Error ? e.message : e) }
+  return out
 }
 
 /** Domeny sklepów z FB (offer_url winnerów) — do cross_source. */
@@ -149,6 +155,7 @@ export interface Author {
   sourceSeed: string
   bestVideoUrl: string
   bestCover: string
+  bestCaption: string
   bestPlayCount: number
   bestPostedAt: string | null
 }
@@ -169,11 +176,13 @@ async function sweep(seeds: string[]): Promise<{ authors: Map<string, Author>; v
     const cur = authors.get(handle)
     if (!cur || pc > cur.bestPlayCount) {
       const bio = am.bioLink && typeof am.bioLink === 'object' ? String((am.bioLink as Record<string, unknown>).link ?? '') : String(am.bioLink ?? '')
+      const tags = Array.isArray(v.hashtags) ? (v.hashtags as { name?: string }[]).map((h) => h.name).filter(Boolean).join(' ') : ''
       authors.set(handle, {
         handle, signature: String(am.signature ?? ''), bioLink: bio,
         sourceSeed: String(v.input ?? (v.searchHashtag as Record<string, unknown> | undefined)?.name ?? ''),
         bestVideoUrl: String(v.webVideoUrl ?? ''),
         bestCover: String(vm.coverUrl ?? vm.cover ?? vm.originCover ?? ''),
+        bestCaption: `${String(v.text ?? '')} ${tags}`.trim(),
         bestPlayCount: pc, bestPostedAt: v.createTimeISO ? String(v.createTimeISO) : null,
       })
     }
@@ -217,15 +226,20 @@ async function main() {
   const existing = new Set((existRows as { store_domain: string }[] ?? []).map((r) => r.store_domain))
   const newCount = sellers.filter((s) => !existing.has(s.storeDomain)).length
 
+  // ali_query z captionów (Haiku, jedno wywołanie na batch) — produkt z filmiku, nie sklepu
+  const qm = await extractAliQueries(sellers.map((s, i) => ({ i, caption: s.bestCaption })))
+  const aliByHandle = new Map<string, string>()
+  sellers.forEach((s, i) => aliByHandle.set(s.handle, qm.get(i) ?? ''))
+
   // cover najlepszego filmiku → R2 + upsert (per rekord; onConflict store_domain; first_seen tylko na insert)
   let saved = 0
   await pool(sellers, 6, async (s) => {
-    const [cover, aliQuery] = await Promise.all([coverToR2(s.handle, s.bestCover), topProductQuery(s.storeDomain)])
+    const cover = await coverToR2(s.handle, s.bestCover)
     const { error } = await supabase.from('tiktok_organic_sellers').upsert({
       handle: s.handle, store_url: s.storeUrl, store_domain: s.storeDomain,
       best_video_url: s.bestVideoUrl, best_video_cover_r2: cover, best_video_playcount: s.bestPlayCount,
       best_video_posted_at: s.bestPostedAt, last_seen: new Date().toISOString(),
-      cross_source: fbDomains.has(s.storeDomain), source_seed: s.sourceSeed, ali_query: aliQuery,
+      cross_source: fbDomains.has(s.storeDomain), source_seed: s.sourceSeed, ali_query: aliByHandle.get(s.handle) || null,
     }, { onConflict: 'store_domain' })
     if (!error) saved++
     else console.error(`  ✗ upsert @${s.handle} (${s.storeDomain}): ${error.message}`)
