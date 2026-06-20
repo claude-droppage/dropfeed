@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, Search } from 'lucide-react'
 
 export interface ReconAd {
   ad_id: string
@@ -26,14 +26,14 @@ function AdCard({ ad }: { ad: ReconAd }) {
   // Link do strony reklamy w bibliotece TikToka — deterministyczny z ad_id (nie do sklepu;
   // destynacja reklamy nie jest scrapowalna).
   const libUrl = `https://library.tiktok.com/ads/detail/?ad_id=${ad.ad_id}`
+  // Profilu reklamodawcy nie ma w danych (tylko nazwa wyświetlana) → uczciwy fallback:
+  // wyszukiwarka TikToka po nazwie (jak „szukaj reklam” przy winnerach FB bez page_id).
+  const searchUrl = ad.advertiser
+    ? `https://www.tiktok.com/search?q=${encodeURIComponent(ad.advertiser)}`
+    : null
   return (
-    <a
-      href={libUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block rounded-2xl border border-line bg-bg-surface overflow-hidden transition-colors hover:border-text-lo"
-    >
-      <div className="relative aspect-[9/12] bg-bg-raised">
+    <div className="rounded-2xl border border-line bg-bg-surface overflow-hidden">
+      <a href={libUrl} target="_blank" rel="noopener noreferrer" className="block relative aspect-[9/12] bg-bg-raised group">
         {ad.media_url && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -53,12 +53,9 @@ function AdCard({ ad }: { ad: ReconAd }) {
             {ad.cta}
           </span>
         )}
-      </div>
+      </a>
       <div className="px-3 py-3">
-        <div className="flex items-center gap-1 text-text-hi text-sm font-medium">
-          <span className="truncate">{ad.advertiser ?? '—'}</span>
-          <ArrowUpRight size={13} className="text-text-lo shrink-0" />
-        </div>
+        <div className="text-text-hi text-sm font-medium truncate">{ad.advertiser ?? '—'}</div>
         <div className="mt-1.5 flex flex-wrap gap-1.5 font-mono text-[11px] text-text-mid">
           {ad.regions?.length ? (
             <span className="rounded-full bg-bg-raised px-2 py-0.5">{ad.regions.join(' ')}</span>
@@ -68,8 +65,18 @@ function AdCard({ ad }: { ad: ReconAd }) {
             <span className="rounded-full bg-heat-deep text-heat px-2 py-0.5">{live}d na antenie</span>
           ) : null}
         </div>
+        <div className="mt-2.5 flex items-center gap-3 text-[11px]">
+          {searchUrl && (
+            <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-text-mid hover:text-text-hi transition-colors">
+              <Search size={12} /> szukaj na TikToku
+            </a>
+          )}
+          <a href={libUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-text-lo hover:text-text-mid transition-colors">
+            biblioteka <ArrowUpRight size={12} />
+          </a>
+        </div>
       </div>
-    </a>
+    </div>
   )
 }
 
