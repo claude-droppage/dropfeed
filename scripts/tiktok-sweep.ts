@@ -23,9 +23,12 @@ const supabase = createClient(E.NEXT_PUBLIC_SUPABASE_URL!, E.SUPABASE_SERVICE_RO
 const TOKEN = E.APIFY_TOKEN!
 
 // ── parametry (strojalne env) ────────────────────────────────────────────
+// Pomiar 2026-06-20: clockworks ~$0.003/wideo. 120/seed×8 = 960 wideo = $2.88 sweep
+// (profilujemy i tak tylko top MAX_PROFILES). Domyślne capy zestrojone pod ~$1/run:
+// 40/seed×8 ≈ 320 wideo (~$1 sweep) + 120 profili (~$0.5) ≈ $1.5. Strojalne env.
 const SEEDS_PER_RUN = parseInt(E.SEEDS_PER_RUN ?? '8', 10)
-const MAX_VIDEOS_PER_SEED = parseInt(E.MAX_VIDEOS_PER_SEED ?? '120', 10)
-const MAX_PROFILES_PER_RUN = parseInt(E.MAX_PROFILES_PER_RUN ?? '150', 10)
+const MAX_VIDEOS_PER_SEED = parseInt(E.MAX_VIDEOS_PER_SEED ?? '40', 10)
+const MAX_PROFILES_PER_RUN = parseInt(E.MAX_PROFILES_PER_RUN ?? '120', 10)
 
 const SWEEP_ACTOR = 'clockworks~tiktok-scraper'
 const PROFILE_ACTOR = 'clockworks~tiktok-profile-scraper'
@@ -153,7 +156,7 @@ async function sweep(seeds: string[]): Promise<{ authors: Map<string, Author>; v
       const bio = am.bioLink && typeof am.bioLink === 'object' ? String((am.bioLink as Record<string, unknown>).link ?? '') : String(am.bioLink ?? '')
       authors.set(handle, {
         handle, signature: String(am.signature ?? ''), bioLink: bio,
-        sourceSeed: String(v.searchHashtag ?? v.input ?? ''),
+        sourceSeed: String(v.input ?? (v.searchHashtag as Record<string, unknown> | undefined)?.name ?? ''),
         bestVideoUrl: String(v.webVideoUrl ?? ''),
         bestCover: String(vm.coverUrl ?? vm.cover ?? vm.originCover ?? ''),
         bestPlayCount: pc, bestPostedAt: v.createTimeISO ? String(v.createTimeISO) : null,
