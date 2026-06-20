@@ -11,12 +11,11 @@ import WinnerCard from './WinnerCard'
 const WD = ['ndz', 'pon', 'wt', 'śr', 'czw', 'pt', 'sob']
 
 export default function ProductsView({
-  realTodayISO, days, todayWinners, tail,
+  realTodayISO, days, todayWinners,
 }: {
   realTodayISO: string
   days: { day: string; thumb?: string }[]
   todayWinners: ProductWinner[]
-  tail: ProductWinner[]
 }) {
   const router = useRouter()
   const open = (id: string) => router.push(`/products/${id}`)
@@ -123,16 +122,6 @@ export default function ProductsView({
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
             {winners.map((w) => <WinnerCard key={w.productId} w={w} onOpen={() => open(w.productId)} />)}
           </div>
-        )}
-
-        {/* pełna lista rise-first */}
-        {tail.length > 0 && (
-          <>
-            <h2 className="text-base font-bold text-text-hi mb-3">Wszystkie produkty <span className="text-text-lo text-xs font-normal">· rosnące najpierw</span></h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {tail.map((w) => <WinnerCard key={w.productId} w={w} onOpen={() => open(w.productId)} />)}
-            </div>
-          </>
         )}
       </div>
     </div>
