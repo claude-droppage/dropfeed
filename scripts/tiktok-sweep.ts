@@ -103,6 +103,21 @@ async function coverToR2(handle: string, coverUrl: string): Promise<string | nul
   } catch { return null }
 }
 
+/** Keyword do „Szukaj na AliExpress" = tytuł top-produktu sklepu (Shopify /products.json, $0). */
+function cleanQuery(title: string): string {
+  return title.split('|')[0].replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean).slice(0, 6).join(' ').trim()
+}
+async function topProductQuery(domain: string): Promise<string | null> {
+  if (!domain) return null
+  try {
+    const r = await fetch(`https://${domain}/products.json?limit=1`, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0' } })
+    if (!r.ok) return null
+    const j = await r.json() as { products?: { title?: string }[] }
+    const t = j.products?.[0]?.title
+    return t ? (cleanQuery(t) || null) : null
+  } catch { return null }
+}
+
 /** Domeny sklepów z FB (offer_url winnerów) — do cross_source. */
 async function fbStoreDomains(): Promise<Set<string>> {
   const set = new Set<string>()
@@ -205,12 +220,12 @@ async function main() {
   // cover najlepszego filmiku → R2 + upsert (per rekord; onConflict store_domain; first_seen tylko na insert)
   let saved = 0
   await pool(sellers, 6, async (s) => {
-    const cover = await coverToR2(s.handle, s.bestCover)
+    const [cover, aliQuery] = await Promise.all([coverToR2(s.handle, s.bestCover), topProductQuery(s.storeDomain)])
     const { error } = await supabase.from('tiktok_organic_sellers').upsert({
       handle: s.handle, store_url: s.storeUrl, store_domain: s.storeDomain,
       best_video_url: s.bestVideoUrl, best_video_cover_r2: cover, best_video_playcount: s.bestPlayCount,
       best_video_posted_at: s.bestPostedAt, last_seen: new Date().toISOString(),
-      cross_source: fbDomains.has(s.storeDomain), source_seed: s.sourceSeed,
+      cross_source: fbDomains.has(s.storeDomain), source_seed: s.sourceSeed, ali_query: aliQuery,
     }, { onConflict: 'store_domain' })
     if (!error) saved++
     else console.error(`  ✗ upsert @${s.handle} (${s.storeDomain}): ${error.message}`)

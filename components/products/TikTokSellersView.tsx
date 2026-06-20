@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowUpRight, Play, Store } from 'lucide-react'
+import { ArrowUpRight, Play, Store, Search } from 'lucide-react'
 import type { TikTokSeller } from '@/lib/types'
 
 const fmtViews = (n?: number): string => {
@@ -75,6 +75,13 @@ function SellerCard({ s }: { s: TikTokSeller }) {
           </a>
         ) : (
           <div className="mt-1 flex items-center gap-1 text-[12px] text-text-mid"><Store size={12} /> <span className="truncate">{s.storeDomain}</span></div>
+        )}
+        {s.aliQuery && (
+          <a href={`https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(s.aliQuery)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-heat-deep border border-heat/30 text-heat text-[11px] px-2 py-0.5 hover:bg-heat/10 transition-colors">
+            <Search size={11} /> AliExpress
+          </a>
         )}
       </div>
     </div>

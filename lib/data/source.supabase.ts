@@ -457,7 +457,7 @@ export async function getProductWinnersForDate(date: string): Promise<ProductWin
 export async function getTikTokSellers(limit = 60): Promise<import('@/lib/types').TikTokSeller[]> {
   const { data, error } = await supabase
     .from('tiktok_organic_sellers')
-    .select('handle, store_url, store_domain, best_video_url, best_video_cover_r2, best_video_playcount, best_video_posted_at, cross_source, source_seed')
+    .select('handle, store_url, store_domain, best_video_url, best_video_cover_r2, best_video_playcount, best_video_posted_at, cross_source, source_seed, ali_query')
     .order('best_video_playcount', { ascending: false, nullsFirst: false })
     .limit(limit)
   if (error || !Array.isArray(data)) return []
@@ -471,6 +471,7 @@ export async function getTikTokSellers(limit = 60): Promise<import('@/lib/types'
     bestVideoPostedAt: (r.best_video_posted_at as string) ?? undefined,
     crossSource: Boolean(r.cross_source),
     sourceSeed: (r.source_seed as string) ?? undefined,
+    aliQuery: (r.ali_query as string) ?? undefined,
   }))
 }
 

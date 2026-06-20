@@ -284,6 +284,8 @@ export interface TikTokSeller {
   bestVideoPostedAt?: string
   crossSource: boolean
   sourceSeed?: string
+  /** keyword do „Szukaj na AliExpress" (tytuł top-produktu sklepu) */
+  aliQuery?: string
 }
 
 export type ShopMarket = 'PL' | 'US'
