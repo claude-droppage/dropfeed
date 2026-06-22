@@ -139,6 +139,12 @@ export default function ProductModal({ product: p, onClose, onSave, isSaved }: {
             )}
           </div>
 
+          {/* brief: skopiuj ID do generatora w „Marki i briefy" */}
+          <div className="mt-3 flex items-center gap-2 text-[11px] text-text-lo">
+            <button onClick={() => navigator.clipboard?.writeText(p.productId)} className="rounded-md bg-bg-raised border border-line px-2 py-1 hover:text-text-hi">Kopiuj ID produktu</button>
+            <a href="/shopradar/brands" className="text-heat hover:underline">→ Generuj brief</a>
+          </div>
+
           {/* RECENZJE → kąty reklamowe */}
           <div className="mt-6">
             <div className="flex items-center justify-between mb-2">

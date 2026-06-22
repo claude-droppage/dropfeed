@@ -68,7 +68,14 @@ export default function ShopRadarView({ query, region, products }: { query: stri
     <div className="h-full overflow-y-auto bg-bg-void">
       <div className="mx-auto max-w-6xl px-4 md:px-8 pt-4 pb-16">
         <div className="md:hidden mb-2"><SwipeSpyLogo className="text-[1.15rem]" /></div>
-        <h1 className="text-lg md:text-[22px] font-bold tracking-tight text-text-hi">ShopRadar</h1>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h1 className="text-lg md:text-[22px] font-bold tracking-tight text-text-hi">ShopRadar</h1>
+          <div className="flex items-center gap-3 text-[12px]">
+            <a href="/shopradar/movers" className="text-text-mid hover:text-text-hi">Movers</a>
+            <a href="/shopradar/saved" className="text-text-mid hover:text-text-hi">Zapisane</a>
+            <a href="/shopradar/brands" className="text-heat hover:underline">Marki i briefy →</a>
+          </div>
+        </div>
         <p className="text-[12px] text-text-mid mt-0.5 mb-4">Research TikTok Shop — produkty, sprzedaż, sklepy. Dane: rynki LIVE (US/EU). PL niedostępne (TikTok Shop tam nie działa).</p>
 
         {/* search */}
