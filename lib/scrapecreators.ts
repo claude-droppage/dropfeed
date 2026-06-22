@@ -71,6 +71,52 @@ function normalize(p: Record<string, unknown>, region: string): ShopProduct {
   }
 }
 
+export interface ShopVideo {
+  itemId: string; url?: string; cover?: string; contentUrl?: string
+  views: number; likes: number; postedAt?: string; caption: string
+  authorName: string; authorUrl?: string; authorAvatar?: string
+}
+
+/** Wideo napędzające sprzedaż produktu (affiliate/related). 1 credit. */
+export async function getProductVideos(productUrl: string, region = 'US'): Promise<ShopVideo[]> {
+  const d = await scGet('/v1/tiktok/product', { url: productUrl, region })
+  const rv = (d?.related_videos as Record<string, unknown>[]) ?? []
+  return rv.map((v) => ({
+    itemId: String(v.item_id ?? ''),
+    url: v.url ? String(v.url) : undefined,
+    cover: v.cover_image_url ? String(v.cover_image_url) : undefined,
+    contentUrl: v.content_url ? String(v.content_url) : undefined,
+    views: num(v.play_count), likes: num(v.like_count),
+    postedAt: v.upload_time ? new Date(num(v.upload_time) * 1000).toISOString() : undefined,
+    caption: String(v.title ?? ''),
+    authorName: String(v.author_name ?? ''),
+    authorUrl: v.author_url ? String(v.author_url) : undefined,
+    authorAvatar: v.author_avatar_url ? String(v.author_avatar_url) : undefined,
+  })).filter((v) => v.itemId)
+}
+
+export interface Creator {
+  handle: string; nickname: string; followers: number; likes: number; videoCount: number
+  verified: boolean; avatar?: string; bio?: string; bioLink?: string; email?: string
+}
+
+/** Profil twórcy TikTok. 1 credit. (email wyłuskany z bio jeśli jest; %US niedostępne.) */
+export async function getCreator(handle: string): Promise<Creator | null> {
+  const d = await scGet('/v1/tiktok/profile', { handle })
+  if (!d) return null
+  const user = (d.user as Record<string, unknown>) ?? {}
+  const stats = (d.stats as Record<string, unknown>) ?? {}
+  const bio = String(user.signature ?? '')
+  const email = bio.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i)?.[0]
+  const bioLink = user.bioLink && typeof user.bioLink === 'object' ? String((user.bioLink as Record<string, unknown>).link ?? '') : undefined
+  return {
+    handle: String(user.uniqueId ?? handle), nickname: String(user.nickname ?? ''),
+    followers: num(stats.followerCount), likes: num(stats.heart ?? stats.heartCount), videoCount: num(stats.videoCount),
+    verified: Boolean(user.verified), avatar: user.avatarMedium ? String(user.avatarMedium) : undefined,
+    bio, bioLink, email,
+  }
+}
+
 /** Search produktów TikTok Shop dla frazy + regionu. 1 credit/strona. */
 export async function searchShop(query: string, region: string = 'US', page = 1): Promise<{ products: ShopProduct[]; total: number }> {
   const d = await scGet('/v1/tiktok/shop/search', { query, region, page })

@@ -2,11 +2,12 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Star, TrendingUp, ExternalLink, Bookmark, X, Store, Package } from 'lucide-react'
+import { Search, Store } from 'lucide-react'
 import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
+import ProductModal from './ProductModal'
 
 interface P {
-  productId: string; title: string; description: string; imageUrl?: string; videoUrl?: string
+  productId: string; title: string; description?: string; imageUrl?: string; videoUrl?: string
   price: number; currency: string; rating?: number; reviewCount?: number; soldCount: number
   estRevenue: number; sellerId?: string; shopName?: string; shopLogo?: string; productUrl?: string; region: string
 }
@@ -181,33 +182,7 @@ export default function ShopRadarView({ query, region, products }: { query: stri
         )}
       </div>
 
-      {/* MODAL produktu */}
-      {open && (
-        <div className="fixed inset-0 z-50 bg-bg-void/80 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6" onClick={() => setOpen(null)}>
-          <div className="bg-bg-surface border border-line rounded-t-3xl md:rounded-3xl w-full max-w-lg max-h-[90dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="relative">
-              {open.imageUrl && <img src={open.imageUrl} alt="" className="w-full aspect-square object-cover" />}
-              <button onClick={() => setOpen(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-bg-void/70 backdrop-blur grid place-items-center text-text-hi"><X size={16} /></button>
-            </div>
-            <div className="p-5">
-              <h2 className="text-text-hi font-semibold text-[15px] leading-snug">{open.title}</h2>
-              <div className="text-[12px] text-text-mid mt-1 flex items-center gap-1"><Store size={12} /> {open.shopName}</div>
-              <div className="grid grid-cols-2 gap-2.5 mt-4">
-                {[['Cena', `${open.currency}${open.price}`], ['Sprzedane', `${fmtNum(open.soldCount)} szt`], ['Szac. przychód', fmtMoney(open.estRevenue, open.currency)], ['Ocena', open.rating ? `★ ${open.rating}` : '—']].map(([k, v]) => (
-                  <div key={k} className="rounded-xl bg-bg-raised px-3 py-2.5"><div className="font-mono text-[15px] text-text-hi">{v}</div><div className="text-[11px] text-text-lo">{k}</div></div>
-                ))}
-              </div>
-              <div className="flex gap-2 mt-4">
-                {open.productUrl && <a href={open.productUrl} target="_blank" rel="noopener noreferrer" className="flex-1 bg-heat text-bg-void rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-1.5"><ExternalLink size={14} /> TikTok Shop</a>}
-                <button onClick={() => save(open)} className={`px-4 rounded-xl border text-sm flex items-center gap-1.5 ${saved.has(open.productId) ? 'border-profit text-profit' : 'border-line text-text-mid'}`}>
-                  <Bookmark size={14} className={saved.has(open.productId) ? 'fill-current' : ''} /> {saved.has(open.productId) ? 'Zapisano' : 'Zapisz'}
-                </button>
-              </div>
-              <p className="text-[11px] text-text-lo mt-4 flex items-center gap-1"><TrendingUp size={11} /> Wideo, recenzje→kąty i AI teardown dochodzą w kolejnych krokach.</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {open && <ProductModal product={open} onClose={() => setOpen(null)} onSave={save} isSaved={saved.has(open.productId)} />}
     </div>
   )
 }
