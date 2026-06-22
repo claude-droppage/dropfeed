@@ -34,9 +34,10 @@ Zwróć WYŁĄCZNIE JSON (po polsku): {"hook":"wizualny hook w 1. sekundzie","fo
 
   let teardown: Record<string, unknown> | null = null
   try {
-    const msg = await anthropic.messages.create({ model: 'claude-haiku-4-5', max_tokens: 1200, messages: [{ role: 'user', content: blocks }] })
-    const txt = msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('').replace(/```json|```/g, '').trim()
-    teardown = JSON.parse(txt)
+    const msg = await anthropic.messages.create({ model: 'claude-haiku-4-5', max_tokens: 1500, messages: [{ role: 'user', content: blocks }] })
+    const txt = msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('')
+    const j = txt.match(/\{[\s\S]*\}/)
+    teardown = JSON.parse(j ? j[0] : txt)
     if (teardown) teardown.itemId = b.itemId
   } catch { return NextResponse.json({ error: 'ai_failed' }, { status: 502 }) }
 

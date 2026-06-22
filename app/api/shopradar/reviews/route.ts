@@ -26,14 +26,15 @@ export async function POST(req: NextRequest) {
   let analysis: Record<string, unknown> | null = null
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5', max_tokens: 2000,
-      messages: [{ role: 'user', content: `Jesteś strategiem reklamowym. Oto recenzje produktu z TikTok Shop. Zwróć WYŁĄCZNIE JSON (po polsku):
+      model: 'claude-haiku-4-5', max_tokens: 4000,
+      messages: [{ role: 'user', content: `Jesteś strategiem reklamowym. Oto recenzje produktu z TikTok Shop. Zwróć WYŁĄCZNIE JSON (po polsku, max 5 pozycji na listę):
 {"summary":"2-3 zdania","complaints":[{"point":"...","quote":"cytat z recenzji"}],"loves":[{"point":"...","quote":"cytat"}],"whyBuy":["..."],"questions":["..."],"voc":["frazy klienta (voice-of-customer)"],"angles":["rekomendowane kąty reklamowe"]}
 Recenzje:
 ${sample.join('\n')}` }],
     })
-    const txt = msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('').replace(/```json|```/g, '').trim()
-    analysis = JSON.parse(txt)
+    const txt = msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('')
+    const j = txt.match(/\{[\s\S]*\}/)
+    analysis = JSON.parse(j ? j[0] : txt)
   } catch { return NextResponse.json({ error: 'ai_failed' }, { status: 502 }) }
 
   const payload = { analysis, total, overall, sampled: reviews.length, verifiedPct, usPct, breakdown }
