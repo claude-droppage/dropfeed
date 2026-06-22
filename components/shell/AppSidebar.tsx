@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Sparkles, Flame, Package, Store, Bookmark, User } from 'lucide-react'
+import { Sparkles, Flame, Package, Store, Bookmark, User, Radar } from 'lucide-react'
 import { SwipeSpyLogo } from '@/components/SwipeSpyLogo'
 import { pl } from '@/lib/i18n/pl'
 
@@ -11,6 +11,7 @@ const NAV = [
   { href: '/feed', label: pl.nav.feed, Icon: Flame },
   { href: '/products', label: pl.nav.products, Icon: Package },
   { href: '/shop', label: pl.nav.shop, Icon: Store },
+  { href: '/shopradar', label: 'ShopRadar', Icon: Radar },
   { href: '/boards', label: pl.nav.boards, Icon: Bookmark },
   { href: '/profile', label: pl.nav.profile, Icon: User },
 ] as const
