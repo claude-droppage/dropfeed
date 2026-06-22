@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Store, ExternalLink, Bookmark, Play, Heart, Eye, Sparkles, BadgeCheck, Mail } from 'lucide-react'
+import { X, Store, ExternalLink, Bookmark, Play, Heart, Eye, Sparkles, BadgeCheck, Mail, MessageSquare, Target } from 'lucide-react'
 
 export interface SRProduct {
   productId: string; title: string; imageUrl?: string; price: number; currency: string
@@ -10,6 +10,8 @@ export interface SRProduct {
 interface Video { itemId: string; url?: string; cover?: string; views: number; likes: number; postedAt?: string; caption: string; authorName: string; authorUrl?: string; authorAvatar?: string }
 interface Creator { handle: string; nickname: string; followers: number; likes: number; videoCount: number; verified: boolean; avatar?: string; bio?: string; bioLink?: string; email?: string }
 interface Teardown { hook?: string; format?: string; language?: string; proof?: string; angle?: string; funnel?: string; why?: string }
+interface RAnalysis { summary?: string; complaints?: { point: string; quote: string }[]; loves?: { point: string; quote: string }[]; whyBuy?: string[]; questions?: string[]; voc?: string[]; angles?: string[] }
+interface RData { analysis: RAnalysis; total: number; overall: number; sampled: number; verifiedPct: number; usPct: number; breakdown: { stars: number; n: number }[] }
 
 const fmt = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n)
 const fmtMoney = (n: number, c: string) => `${c}${n.toLocaleString('pl-PL', { maximumFractionDigits: 0 })}`
@@ -21,6 +23,16 @@ export default function ProductModal({ product: p, onClose, onSave, isSaved }: {
   const [creators, setCreators] = useState<Record<string, Creator | null>>({})
   const [showCreator, setShowCreator] = useState<string | null>(null)
   const [teardowns, setTeardowns] = useState<Record<string, Teardown | 'loading' | 'error'>>({})
+  const [reviews, setReviews] = useState<'idle' | 'loading' | 'error' | 'none' | RData>('idle')
+
+  const analyzeReviews = async () => {
+    setReviews('loading')
+    try {
+      const r = await fetch('/api/shopradar/reviews', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ productId: p.productId, region: p.region }) })
+      if (!r.ok) { setReviews(r.status === 404 ? 'none' : 'error'); return }
+      setReviews(await r.json())
+    } catch { setReviews('error') }
+  }
 
   useEffect(() => {
     let on = true
@@ -126,6 +138,33 @@ export default function ProductModal({ product: p, onClose, onSave, isSaved }: {
               </div>
             )}
           </div>
+
+          {/* RECENZJE → kąty reklamowe */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-text-hi text-sm font-semibold flex items-center gap-1.5"><MessageSquare size={14} /> Recenzje → kąty</h3>
+              {reviews === 'idle' && <button onClick={analyzeReviews} className="rounded-full bg-heat-deep border border-heat/30 text-heat text-[11px] px-2.5 py-1">Analizuj recenzje</button>}
+            </div>
+            {reviews === 'loading' && <div className="rounded-xl bg-bg-raised p-3 text-[12px] text-text-lo">scrapuję recenzje + analizuję…</div>}
+            {reviews === 'error' && <div className="text-[12px] text-text-lo">Błąd analizy. <button onClick={analyzeReviews} className="text-heat">spróbuj ponownie</button></div>}
+            {reviews === 'none' && <div className="text-[12px] text-text-lo">Brak recenzji do analizy.</div>}
+            {typeof reviews === 'object' && (() => { const d = reviews as RData; const max = Math.max(1, ...d.breakdown.map((x) => x.n)); return (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-center"><div className="font-mono text-2xl text-text-hi">{d.overall}</div><div className="text-[10px] text-text-lo">★ ({d.total.toLocaleString('pl-PL')})</div></div>
+                  <div className="flex-1 space-y-0.5">
+                    {d.breakdown.map((x) => <div key={x.stars} className="flex items-center gap-1.5 text-[10px]"><span className="text-text-lo w-2">{x.stars}</span><div className="flex-1 h-1.5 rounded bg-bg-raised overflow-hidden"><div className="h-full bg-heat" style={{ width: `${x.n / max * 100}%` }} /></div></div>)}
+                  </div>
+                  <div className="text-[10px] text-text-lo text-right leading-tight">{d.verifiedPct}% zweryf.<br />{d.usPct}% US<br />{d.sampled} próbka</div>
+                </div>
+                {d.analysis.summary && <p className="text-[12px] text-text-mid leading-snug">{d.analysis.summary}</p>}
+                {!!d.analysis.angles?.length && <RBlock icon={<Target size={12} className="text-heat" />} title="Kąty reklamowe" items={d.analysis.angles} />}
+                {!!d.analysis.loves?.length && <RQuotes title="Za co kochają" color="text-profit" items={d.analysis.loves} />}
+                {!!d.analysis.complaints?.length && <RQuotes title="Obiekcje" color="text-heat" items={d.analysis.complaints} />}
+                {!!d.analysis.voc?.length && <RBlock title="Voice-of-customer" items={d.analysis.voc} />}
+                {!!d.analysis.whyBuy?.length && <RBlock title="Dlaczego kupują" items={d.analysis.whyBuy} />}
+              </div>) })()}
+          </div>
         </div>
       </div>
 
@@ -156,6 +195,26 @@ export default function ProductModal({ product: p, onClose, onSave, isSaved }: {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function RBlock({ icon, title, items }: { icon?: React.ReactNode; title: string; items: string[] }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold text-text-hi flex items-center gap-1 mb-1">{icon}{title}</div>
+      <ul className="space-y-0.5">{items.slice(0, 6).map((it, i) => <li key={i} className="text-[12px] text-text-mid flex gap-1.5"><span className="text-text-lo">·</span>{it}</li>)}</ul>
+    </div>
+  )
+}
+
+function RQuotes({ title, color, items }: { title: string; color: string; items: { point: string; quote: string }[] }) {
+  return (
+    <div>
+      <div className={`text-[11px] font-semibold mb-1 ${color}`}>{title}</div>
+      <ul className="space-y-1.5">{items.slice(0, 4).map((it, i) => (
+        <li key={i} className="text-[12px]"><span className="text-text-hi">{it.point}</span>{it.quote && <span className="block text-[11px] text-text-lo italic">„{it.quote}"</span>}</li>
+      ))}</ul>
     </div>
   )
 }

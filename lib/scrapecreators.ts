@@ -117,6 +117,30 @@ export async function getCreator(handle: string): Promise<Creator | null> {
   }
 }
 
+export interface ShopReview { rating: number; text: string; verified: boolean; country?: string; time?: string }
+
+/** Recenzje produktu (paginacja do maxReviews). 1 credit/strona (~10 recenzji). */
+export async function getProductReviews(productId: string, region = 'US', maxReviews = 100): Promise<{ reviews: ShopReview[]; total: number; overall: number }> {
+  const out: ShopReview[] = []
+  let total = 0, overall = 0, page = 1
+  while (out.length < maxReviews && page <= 12) {
+    const d = await scGet('/v1/tiktok/shop/product/reviews', { product_id: productId, region, page })
+    if (!d) break
+    const rr = d.review_ratings as Record<string, unknown> | undefined
+    total = num(rr?.review_count); overall = num(rr?.overall_score)
+    const revs = (d.product_reviews as Record<string, unknown>[]) ?? []
+    for (const r of revs) out.push({
+      rating: num(r.review_rating), text: String(r.review_text ?? ''),
+      verified: String(r.is_verified_purchase) === 'True',
+      country: r.review_country ? String(r.review_country) : undefined,
+      time: r.review_time ? String(r.review_time) : undefined,
+    })
+    if (!d.has_more || !revs.length) break
+    page++
+  }
+  return { reviews: out.slice(0, maxReviews), total, overall }
+}
+
 /** Search produktów TikTok Shop dla frazy + regionu. 1 credit/strona. */
 export async function searchShop(query: string, region: string = 'US', page = 1): Promise<{ products: ShopProduct[]; total: number }> {
   const d = await scGet('/v1/tiktok/shop/search', { query, region, page })
